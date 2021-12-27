@@ -23,4 +23,4 @@ cmake ..
 make
 ```
 
-Then copy "examples/yatbfw.json" to "~/.config".
+Then copy "example/yatbfw.json" to "~/.config".

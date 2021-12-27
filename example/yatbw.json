@@ -1,0 +1,52 @@
+{
+	"icon_theme" : "Papirus-Light",
+	"font" : "Cantarell",
+	"font_size" : 20,
+	"color" : [0.0 ,0.0 ,0.0],
+	"background_color" : [0.9, 0.9, 1],
+	"size" : 33,
+	"position" : "top",
+	"start_items" : [
+		{
+			"type" : "launcher",
+			"icon" : "/usr/local/share/lxqt/graphics/lxqt_logo.png",
+			"exec" : "pcmanfm-qt 'menu://applications/'"
+		},
+		{
+			"type" : "launcher",
+			"icon" : "firefox",
+			"exec" : "firefox"
+		}
+	],
+	"end_items" : [
+		{
+			"type" : "clock",
+			"time_format" : "%H:%M",
+			"exec" : "zenity --calendar --text= --title=`date +%Y-%m-%d`"
+		},
+		{
+			"type" : "battery",
+			"exec" : "qps"
+		},
+		{
+			"type" : "launcher",
+			"icon" : "network-wireless",
+			"exec" : "qterminal -e nmtui"
+		},
+		{
+			"type" : "launcher",
+			"icon" : "audio-volume-muted",
+			"exec" : "pactl set-sink-volume @DEFAULT_SINK@ 0%"
+		},
+		{
+			"type" : "launcher",
+			"icon" : "audio-volume-medium",
+			"exec" : "pactl set-sink-volume @DEFAULT_SINK@ -5%"
+		},
+		{
+			"type" : "launcher",
+			"icon" : "audio-volume-high",
+			"exec" : "pactl set-sink-volume @DEFAULT_SINK@ +5%"
+		}
+	]
+}

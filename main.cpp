@@ -35,7 +35,7 @@ int main(int argn, char *argv[])
       }
     }
     if(!settings_file)
-      settings->load_settings(settings->get_env("XDG_CONFIG_HOME") + "/yatbw.json", &panel);
+      settings->load_settings(settings->get_env("XDG_CONFIG_HOME") + "/yatbfw.json", &panel);
   }
 
   panel.init();

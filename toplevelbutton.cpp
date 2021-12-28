@@ -18,6 +18,7 @@
 #include <fstream>
 #include <filesystem>
 #include <regex>
+#include <linux/input-event-codes.h>
 #include "settings.h"
 
 static std::string suggested_icon_for_id(std::string id);
@@ -39,8 +40,9 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     std::string icon;
     // Is this icon already loaded?
     for(ToplevelButton *b : *m_toplevels) {
-      if(b->m_id == m_id) {
+      if(b->m_id == m_id && b != this) {
         icon = b->getIcon();
+        std::cout << "[ToplevelButton::ToplevelButton] Icon already loaded for id " << id << " icon " << icon << std::endl; 
         break;
       }
     }
@@ -86,10 +88,19 @@ void ToplevelButton::on_mouse_clicked(int button)
       b->setSelected(false);
     setSelected(true);
   } else {
-    if(m_maximized)
-      m_toplevel_handle.unset_maximized();
-    else
-      m_toplevel_handle.set_maximized();
+    if(button == BTN_LEFT) {
+      if(m_maximized)
+        m_toplevel_handle.unset_maximized();
+      else
+        m_toplevel_handle.set_maximized();
+    } else if(button == BTN_RIGHT) {
+      if(m_minimized)
+        m_toplevel_handle.unset_minimized();
+      else
+        m_toplevel_handle.set_minimized();
+    } else if(button == BTN_MIDDLE) {
+      m_toplevel_handle.close();
+    }
   }
 }
 
@@ -128,6 +139,7 @@ static std::string get_icon_from_desktop_file(std::string path, std::string id)
 {
   std::string icon;
   std::filesystem::path p(path + id + std::string(".desktop"));
+  std::cout << "[ToplevelButton::get_icon_from_desktop_file] desktop file " << p.string() << std::endl;
   std::filesystem::directory_entry entry(p);
   if(entry.exists()) {
     std::ifstream in(p.c_str());
@@ -136,9 +148,12 @@ static std::string get_icon_from_desktop_file(std::string path, std::string id)
       std::smatch m;
       if(std::regex_match(line, m, re)) {
         icon = m[1];
+        std::cout << " icon found in desktop file " << icon << std::endl;
         break;
       }
     }
+  } else {
+    std::cout << " desktop file " << p.string() << " doesn't exists." << std::endl;
   }
   return icon;
 }
@@ -152,14 +167,18 @@ static std::string suggested_icon_for_id(std::string id)
   std::string::size_type pos = id.find('.');
   if(pos != std::string::npos)
     id = id.substr(0, pos);
-  icon = get_icon_from_desktop_file(std::string("/usr/share/applications/"), id);
-  if(!icon.empty() && std::filesystem::directory_entry(std::filesystem::path(icon)).exists())
-    return icon;
-  icon = get_icon_from_desktop_file(std::string("/usr/local/share/applications/"), id);
-  if(!icon.empty() && std::filesystem::directory_entry(std::filesystem::path(icon)).exists())
-    return icon;
-  if(!icon.empty())
-    id = icon;
+  
+  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/share/applications", "/usr/local/share/applications/", "/usr/share/applications/" };
+
+  for(std::string path : paths) {
+    icon = get_icon_from_desktop_file(path, id);
+    if(!icon.empty() && std::filesystem::directory_entry(std::filesystem::path(icon)).exists())
+      return icon;
+    if(!icon.empty()) {
+      id = icon;
+      break;
+    }
+  }
 
   icon = Icon::suggested_icon_for_id(id);
   if(!icon.empty())

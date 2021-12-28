@@ -18,6 +18,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <linux/input-event-codes.h>
 
 ButtonRunCommand::ButtonRunCommand() : Button() { }
 ButtonRunCommand::ButtonRunCommand(char *icon_path) : Button(icon_path) { }
@@ -36,14 +37,16 @@ void ButtonRunCommand::setFD(int fd)
 
 void ButtonRunCommand::on_mouse_clicked(int button)
 {
-  std::cout << m_command  << " &>/dev/null &" << std::endl;
-  if(fork() == 0) {
-    close(m_fd);
-    system((m_command + " &> /dev/null &").c_str());
-    // Wait until child dies
-    int status;
-    wait(&status);
-    exit(0);
+  if(button == BTN_LEFT) {
+    std::cout << m_command  << " &>/dev/null &" << std::endl;
+    if(fork() == 0) {
+      close(m_fd);
+      system((m_command + " &> /dev/null &").c_str());
+      // Wait until child dies
+      int status;
+      wait(&status);
+      exit(0);
+    }
   }
 }
 

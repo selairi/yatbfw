@@ -1,5 +1,5 @@
-project (yatbfw)
 cmake_minimum_required(VERSION 3.21) 
+project (yatbfw VERSION 0.1)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -9,9 +9,13 @@ mark_as_advanced(LIBRT)
 
 pkg_check_modules(RSVG REQUIRED librsvg-2.0>=2.46)
 
-#add_subdirectory(protocols)
-#list(APPEND EXTRA_LIBS Wayland_protocols)
+configure_file(configure.h.in configure.h)
+
 list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/protocols")
+
+set(SHARE_FILES
+    example/yatbfw.json
+)
 
 add_executable(yatbfw 
   main.cpp 
@@ -29,9 +33,11 @@ add_executable(yatbfw
   protocols/toplevel.cpp
 )
 
-include_directories(${RSVG_INCLUDE_DIRS} ${EXTRA_INCLUDES})
-#target_link_libraries(yatbfw wayland-client++ wayland-client-extra++ wayland-cursor++ cairo ${RSVG_LIBRARIES} jsoncpp ${EXTRA_LIBS})
+include_directories(${RSVG_INCLUDE_DIRS} ${EXTRA_INCLUDES} "${PROJECT_BINARY_DIR}")
 target_link_libraries(yatbfw wayland-client++ wayland-client-extra++ wayland-cursor++ cairo ${RSVG_LIBRARIES} jsoncpp)
 if(LIBRT)
   target_link_libraries(yatbfw "${LIBRT}")
 endif()
+
+install(TARGETS yatbfw DESTINATION bin)
+install(FILES ${SHARE_FILES} DESTINATION share/yatbfw)

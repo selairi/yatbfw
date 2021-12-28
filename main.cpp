@@ -15,8 +15,10 @@
  
 #include "panel.h"
 #include "settings.h"
+#include "configure.h"
 #include <string.h>
 #include <iostream>
+#include <filesystem>
 
 int main(int argn, char *argv[])
 {
@@ -34,8 +36,17 @@ int main(int argn, char *argv[])
         settings_file = true;
       }
     }
-    if(!settings_file)
-      settings->load_settings(settings->get_env("XDG_CONFIG_HOME") + "/yatbfw.json", &panel);
+    if(!settings_file) {
+      std::string path(settings->get_env("XDG_CONFIG_HOME") + "/yatbfw.json");
+      std::filesystem::directory_entry settings_entry(path);
+      if(settings_entry.exists())
+        settings->load_settings(path, &panel);
+      else {
+        std::filesystem::directory_entry settings_orig(SHARE_PATH + std::string("/yatbfw.json"));
+        std::filesystem::copy_file(settings_orig, settings_entry);
+        settings->load_settings(path, &panel);
+      }
+    }
   }
 
   panel.init();

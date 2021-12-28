@@ -312,7 +312,7 @@ void Panel::init()
   pointer.on_button() = [&] (uint32_t serial, uint32_t /*unused*/, uint32_t button, pointer_button_state state)
   {
     printf("Botón pulsado %d\n", button);
-    if(button == BTN_LEFT && state == pointer_button_state::pressed) {
+    if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
       printf("Botón pulsado\n");
       for(PanelItem *item : m_panel_items)
         item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
@@ -320,9 +320,7 @@ void Panel::init()
         ((PanelItem*)item)->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
       m_repaint_partial = true;
       //draw(serial, true);
-    } else if(button == BTN_RIGHT && state == pointer_button_state::pressed) {
-      running = false;
-    } else if(button == BTN_LEFT && state != pointer_button_state::pressed) {
+    } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
       for(PanelItem *item : m_panel_items)
         item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
       for(ToplevelButton *item : m_toplevel_handles)

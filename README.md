@@ -23,4 +23,4 @@ cmake ..
 make
 ```
 
-Then copy "example/yatbfw.json" to "~/.config".
+Then edit "~.config/yatbfw.json" to configure your taskbar.

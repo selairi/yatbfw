@@ -20,26 +20,16 @@ std::string Utils::read_command(std::string command)
 {
   FILE *in = popen(command.c_str(), "r");
   char buffer[256];
-  if(!in)
+  if(in == NULL)
     return std::string();
   std::string output;
-  while(!fgets(buffer, sizeof(buffer), in)) {
+  while(fgets(buffer, sizeof(buffer), in) != NULL)
     output += buffer;
-  }
   pclose(in);
   return output;
 }
 
 std::string Utils::read_command(const char *command)
 {
-  FILE *in = popen(command, "r");
-  char buffer[256];
-  if(!in)
-    return std::string();
-  std::string output;
-  while(!fgets(buffer, sizeof(buffer), in)) {
-    output += buffer;
-  }
-  pclose(in);
-  return output;
+  return read_command(std::string(command)); 
 }

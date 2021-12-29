@@ -137,14 +137,14 @@ void Settings::load_settings(std::string path, Panel *panel)
   if(m_icon_theme.empty()) {
     // Load default icon theme
     std::string theme = Utils::read_command("gsettings get org.gnome.desktop.interface icon-theme");
-    theme = theme.substr(1, theme.size() - 1);
-    m_icon_theme = std::string("/usr/share/icons/") + theme;
+    theme = theme.substr(1, theme.size() - 3);
+    m_icon_theme = theme;
   }
 
   std::cout << "icon_theme "  << m_icon_theme << std::endl;
 
   m_font = json.get("font", "Helvetica").asString();
-  m_font_size = json.get("font_size", "20").asInt();
+  m_font_size = json.get("font_size", 20).asInt();
 
   m_panel_size = json.get("size", 33).asInt();
   if(json.get("position", "").asString() == "top")

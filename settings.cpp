@@ -146,27 +146,39 @@ void Settings::load_settings(std::string path, Panel *panel)
   m_font = json.get("font", "Helvetica").asString();
   m_font_size = json.get("font_size", 20).asInt();
 
-  m_panel_size = json.get("size", 33).asInt();
+  m_panel_size = json.get("size", 49).asInt();
   if(json.get("position", "").asString() == "top")
     m_panel_position = PanelPosition::TOP;
   else
     m_panel_position = PanelPosition::BOTTOM;
 
   const Json::Value color = json["color"];
-  m_color.red = color[0].asFloat();
-  m_color.green = color[1].asFloat();
-  m_color.blue = color[2].asFloat();
+  if(color != Json::ValueType::nullValue) {
+    m_color.red = color[0].asFloat();
+    m_color.green = color[1].asFloat();
+    m_color.blue = color[2].asFloat();
+  } else {
+    m_color.red = 0.0;
+    m_color.green = 0.0;
+    m_color.blue = 0.0;
+  }
 
   const Json::Value background_color = json["background_color"];
-  m_background_color.red = background_color[0].asFloat();
-  m_background_color.green = background_color[1].asFloat();
-  m_background_color.blue = background_color[2].asFloat();
-
-  std::cout << "background_color " << m_background_color.red << " " << m_background_color.green << " " << m_background_color.blue << std::endl;
+  if(background_color != Json::ValueType::nullValue) {
+    m_background_color.red = background_color[0].asFloat();
+    m_background_color.green = background_color[1].asFloat();
+    m_background_color.blue = background_color[2].asFloat();
+  } else {
+    m_background_color.red = 0.9;
+    m_background_color.green = 0.9;
+    m_background_color.blue = 1;
+  }
 
   const Json::Value start_items = json["start_items"];
-  load_items(start_items, panel, true);
+  if(start_items != Json::ValueType::nullValue) 
+    load_items(start_items, panel, true);
 
   const Json::Value end_items = json["end_items"];
-  load_items(end_items, panel, false);
+  if(end_items != Json::ValueType::nullValue) 
+    load_items(end_items, panel, false);
 }

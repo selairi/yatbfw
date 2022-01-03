@@ -160,31 +160,57 @@ void Panel::init()
   {
     std::cout << interface << " version " << version << std::endl;
 
-    if(interface == compositor_t::interface_name)
+    if(interface == compositor_t::interface_name) {
       registry.bind(name, compositor, version);
-    else if(interface == shell_t::interface_name)
+      std::cout << "registrando " << compositor_t::interface_name << std::endl;
+    } /*else if(interface == shell_t::interface_name) {
+      std::cout << "registrando " << shell_t::interface_name << std::endl;
       registry.bind(name, shell, version);
-    else if(interface == xdg_wm_base_t::interface_name)
+    }*/ else if(interface == xdg_wm_base_t::interface_name) {
+      std::cout << "registrando " << xdg_wm_base_t::interface_name << std::endl;
       registry.bind(name, xdg_wm_base, version);
-    else if(interface == seat_t::interface_name)
+    } else if(interface == seat_t::interface_name) {
+      std::cout << "registrando " << seat_t::interface_name << std::endl;
       registry.bind(name, seat, version);
-    else if(interface == shm_t::interface_name)
+    } else if(interface == shm_t::interface_name) {
+      std::cout << "registrando shm " << shm_t::interface_name << std::endl;
       registry.bind(name, shm, version);
-    else if(interface == zwlr_layer_shell_v1_t::interface_name)
+    } else if(interface == zwlr_layer_shell_v1_t::interface_name) {
+      std::cout << "registrando " << zwlr_layer_shell_v1_t::interface_name << std::endl;
       registry.bind(name, layer_shell, version);
-    else if(interface == zwlr_foreign_toplevel_manager_v1_t::interface_name) {
-      printf("Toplevel version: %d\n", version);
+    } else if(interface == zwlr_foreign_toplevel_manager_v1_t::interface_name) {
+      std::cout << "registrando output_t " << zwlr_foreign_toplevel_manager_v1_t::interface_name << std::endl;
       registry.bind(name, toplevel_manager, version);
-      printf("Toplevel version: %d\n", version);
       toplevel_manager.on_toplevel() = [&](zwlr_foreign_toplevel_handle_v1_t handle) {
         std::cout << "  toplevel_manager::on_toplevel" << std::endl;
         on_toplevel_listener(handle);
       };
-    } else if(interface == output_t::interface_name)
+    } else if(interface == output_t::interface_name) {
+      std::cout << "registrando " << output_t::interface_name << std::endl;
       registry.bind(name, output, version);
+      std::cout << "registrado" << std::endl;
+      output.on_mode() = [&](uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
+        m_width = width;
+      };
+    }
 
   };
   display.roundtrip();
+  std::cout << "Ejecutado roundtrip" << std::endl;
+
+  // Check if all interfaces has been loaded
+  if(!compositor) 
+    throw "wl_compositor interface cannot been loaded from Wayland compositor.";
+  else if(!seat) 
+    throw "wl_seat interface cannot been loaded from Wayland compositor.";
+  else if(!shm) 
+    throw "wl_shm interface cannot been loaded from Wayland compositor.";
+  else if(!layer_shell) 
+    throw "layer_shell interface cannot been loaded from Wayland compositor.";
+  else if(!toplevel_manager) 
+    throw "foreign_toplevel interface cannot been loaded from Wayland compositor.";
+  else if(!output) 
+    throw "wl_output interface cannot been loaded from Wayland compositor.";
 
   seat.on_capabilities() = [&] (const seat_capability& capability)
   {
@@ -192,6 +218,8 @@ void Panel::init()
     has_pointer = capability & seat_capability::pointer;
   };
 
+  // Load outputs sizes
+  display.roundtrip();
 
   // create a surface
   surface = compositor.create_surface();
@@ -200,6 +228,7 @@ void Panel::init()
   if(layer_shell) {
     layer_shell_surface = layer_shell.get_layer_surface(surface, output, zwlr_layer_shell_v1_layer::top, std::string("Window"));
     layer_shell_surface.set_size(m_width, m_height);
+    layer_shell_surface.set_exclusive_zone(m_height);
     switch(Settings::get_settings()->panel_position()) {
       case PanelPosition::TOP:
         layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::top);
@@ -225,17 +254,19 @@ void Panel::init()
     xdg_toplevel.set_title("Window");
     xdg_toplevel.on_close() = [&] () { running = false; };
   }
-  else
-  {
-    shell_surface = shell.get_shell_surface(surface);
-    shell_surface.on_ping() = [&] (uint32_t serial) { shell_surface.pong(serial); };
-    shell_surface.set_title("Window");
-    shell_surface.set_toplevel();
-    printf("shell_surface\n");
-  }
+  // else
+  // {
+  //   shell_surface = shell.get_shell_surface(surface);
+  //   shell_surface.on_ping() = [&] (uint32_t serial) { shell_surface.pong(serial); };
+  //   shell_surface.set_title("Window");
+  //   shell_surface.set_toplevel();
+  //   printf("shell_surface\n");
+  // }
   surface.commit();
 
+  std::cout << "Iniciando segundo roundtrip" << std::endl;
   display.roundtrip();
+  std::cout << "Segundo roundtrip superado" << std::endl;
 
   // Get input devices
   if(!has_keyboard)
@@ -254,10 +285,16 @@ void Panel::init()
   cur_buf = 0;
 
   // load cursor theme
-  cursor_theme_t cursor_theme = cursor_theme_t(Settings::get_settings()->cursor_theme(), Settings::get_settings()->cursor_size(), shm);
+  std::cout << "Creando tema del cursor " << Settings::get_settings()->cursor_theme() << std::endl;
+  std::string theme(Settings::get_settings()->cursor_theme());
+  std::cout << "Creando tema del cursor " << Settings::get_settings()->cursor_size() << std::endl;
+  cursor_theme_t cursor_theme = cursor_theme_t(theme, Settings::get_settings()->cursor_size(), shm);
+  std::cout << "Tema cargado" << std::endl; 
   cursor_t cursor = cursor_theme.get_cursor("left_ptr");
+  std::cout << "Flecha cargada" << std::endl;
   cursor_image = cursor.image(0);
   cursor_buffer = cursor_image.get_buffer();
+  std::cout << "Tema del cursor creado" << std::endl;
 
   // create cursor surface
   cursor_surface = compositor.create_surface();
@@ -350,8 +387,10 @@ void Panel::init()
   };
 
   // draw stuff
+  std::cout << "Preparado para dibujar" << std::endl;
   draw();
   draw();
+  std::cout << "Dibujado" << std::endl;
 }
 
 

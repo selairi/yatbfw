@@ -39,7 +39,9 @@ std::string Settings::home_path()
 std::string Settings::get_env(const char * var)
 {
   const char *v = getenv(var);
-  return std::string(v);
+  if(v != NULL)
+    return std::string(v);
+  return std::string();
 }
 
 std::string Settings::icon_theme()

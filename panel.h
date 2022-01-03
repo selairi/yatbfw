@@ -62,7 +62,7 @@ private:
   display_t display;
   registry_t registry;
   compositor_t compositor;
-  shell_t shell;
+  //shell_t shell;
   xdg_wm_base_t xdg_wm_base;
   seat_t seat;
   shm_t shm;

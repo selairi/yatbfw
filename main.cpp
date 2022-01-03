@@ -19,9 +19,23 @@
 #include <string.h>
 #include <iostream>
 #include <filesystem>
+#include <execinfo.h>
+
+
+void printstacktrace(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+}
 
 int main(int argn, char *argv[])
 {
+  signal(SIGSEGV, printstacktrace);
   Panel panel;
 
   Settings *settings = Settings::get_settings();
@@ -49,10 +63,16 @@ int main(int argn, char *argv[])
     }
   }
 
-  panel.init();
-  // Run events loop
-  panel.run();
-
-  delete settings;
+  try {
+    panel.init();
+    // Run events loop
+    panel.run();
+    
+	delete settings;
+  } catch(const std::exception& e) {
+    std::cout << "Exception launched:" << std::endl;
+    std::cout << e.what() << std::endl;
+    printstacktrace(0);
+  }
   return 0;
 }

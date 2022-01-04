@@ -51,7 +51,7 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     }
     std::cout << "                 icon " << id << " " << icon << std::endl;
     if(icon.empty())
-      icon = suggested_icon_for_id(std::string("emblem-question"));
+      icon = suggested_icon_for_id(std::string("dialog-question"));
     if(icon.empty())
       init(nullptr, id);
     else
@@ -168,7 +168,7 @@ static std::string suggested_icon_for_id(std::string id)
   if(pos != std::string::npos)
     id = id.substr(0, pos);
   
-  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/share/applications", "/usr/local/share/applications/", "/usr/share/applications/" };
+  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/share/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
 
   for(std::string path : paths) {
     icon = get_icon_from_desktop_file(path, id);

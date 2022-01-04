@@ -21,7 +21,7 @@ std::string get_power()
 {
   std::string text, line;
   
-  // Read capcity
+  // Read capacity
   std::ifstream in("/sys/class/power_supply/BAT0/capacity");
   std::getline(in, text);
   in.close();
@@ -38,7 +38,7 @@ std::string get_power()
 Battery::Battery() : ButtonRunCommand() 
 {
   setText(get_power());
-  set_timeout(60000); // Battery is updated each 30 seconds
+  set_timeout(60000); // Battery is updated each 60 seconds
 }
 
 void Battery::on_timeout()

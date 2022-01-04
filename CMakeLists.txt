@@ -17,6 +17,14 @@ set(SHARE_FILES
     example/yatbfw.json
 )
 
+
+message(STATUS "Build protocols")
+execute_process(COMMAND bash build-protocols.sh
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/protocols
+  RESULT_VARIABLE protocols_result
+  OUTPUT_VARIABLE protocols_output)
+message(STATUS "Protocols [${protocols_result}]: ${protocols_output}")
+
 add_executable(yatbfw 
   main.cpp 
   panel.cpp

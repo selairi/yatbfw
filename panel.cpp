@@ -227,8 +227,6 @@ void Panel::init()
   // create a shell surface
   if(layer_shell) {
     layer_shell_surface = layer_shell.get_layer_surface(surface, output, zwlr_layer_shell_v1_layer::top, std::string("Window"));
-    layer_shell_surface.set_size(m_width, m_height);
-    layer_shell_surface.set_exclusive_zone(m_height);
     switch(Settings::get_settings()->panel_position()) {
       case PanelPosition::TOP:
         layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::top);
@@ -236,17 +234,22 @@ void Panel::init()
       default:
         layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::bottom);
     }
+    layer_shell_surface.set_size(m_width, m_height);
     layer_shell_surface.set_exclusive_zone(m_height);
     layer_shell_surface.set_keyboard_interactivity(zwlr_layer_surface_v1_keyboard_interactivity::none);
     layer_shell_surface.on_configure() = [&](uint32_t serial, uint32_t width, uint32_t height) {
-      m_width = width;
-      m_height = height; 
-      layer_shell_surface.set_size(m_width, m_height);
-      layer_shell_surface.set_exclusive_zone(m_height);
+      if(m_width != width || m_height != height) {
+        m_width = width;
+        m_height = height; 
+        std::cout << "[layer_shell_surface.on_configure()] " << width << " x " << height << std::endl;
+        layer_shell_surface.set_size(m_width, m_height);
+        layer_shell_surface.set_exclusive_zone(m_height);
+        surface.damage(0, 0, m_width, m_height);
+        surface.commit();
+      }
       layer_shell_surface.ack_configure(serial);
     };
-  } else if(xdg_wm_base)
-  {
+  } else if(xdg_wm_base) {
     xdg_wm_base.on_ping() = [&] (uint32_t serial) { xdg_wm_base.pong(serial); };
     xdg_surface = xdg_wm_base.get_xdg_surface(surface);
     xdg_surface.on_configure() = [&] (uint32_t serial) { xdg_surface.ack_configure(serial); };

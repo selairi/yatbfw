@@ -138,7 +138,7 @@ static std::string get_icon_for_theme(std::string path, std::string theme, std::
   for(std::string category : index_theme.paths) {
     for(std::string format : formats) {
       std::string icon = path + "/" + theme + "/" + category + "/" + icon_name + format;
-      std::cout << "*** " << icon << std::endl;
+      //std::cout << "*** " << icon << std::endl;
       std::filesystem::directory_entry icon_direntry(icon);
       if(icon_direntry.exists()) {
         return icon;

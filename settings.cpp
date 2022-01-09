@@ -90,6 +90,11 @@ int Settings::panel_size()
   return m_panel_size;
 }
 
+bool Settings::exclusive_zone()
+{
+  return m_exclusive_zone;
+}
+
 PanelPosition Settings::panel_position()
 {
   return m_panel_position;
@@ -104,6 +109,7 @@ Settings::Settings()
   m_background_color = {.red = 0.9, .green = 0.9, .blue = 1.0};
   m_panel_size = 33;
   m_panel_position = PanelPosition::BOTTOM;
+  m_exclusive_zone = true;
 }
 
 static void load_items(const Json::Value &items, Panel *panel, bool start_pos)
@@ -153,6 +159,7 @@ void Settings::load_settings(std::string path, Panel *panel)
     m_panel_position = PanelPosition::TOP;
   else
     m_panel_position = PanelPosition::BOTTOM;
+  m_exclusive_zone = json.get("exclusive_zone", "true").asString() == "true";
 
   const Json::Value color = json["color"];
   if(color != Json::ValueType::nullValue) {

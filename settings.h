@@ -49,6 +49,7 @@ class Settings
     Color background_color();
 
     int panel_size();
+    bool exclusive_zone();
 
     const char* cursor_theme();
     int cursor_size();
@@ -63,6 +64,7 @@ class Settings
    Color m_color;
    Color m_background_color;
    int m_panel_size;
+   bool m_exclusive_zone;
    PanelPosition m_panel_position;
 };
 

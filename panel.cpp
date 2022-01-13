@@ -236,7 +236,7 @@ void Panel::init()
         layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::bottom);
     }
     layer_shell_surface.set_size(m_width, m_height);
-    layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone() ? m_height : 0);
+    layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone());
     layer_shell_surface.set_keyboard_interactivity(zwlr_layer_surface_v1_keyboard_interactivity::none);
     layer_shell_surface.on_configure() = [&](uint32_t serial, uint32_t width, uint32_t height) {
       if(m_width != width || m_height != height) {
@@ -244,7 +244,7 @@ void Panel::init()
         m_height = height; 
         std::cout << "[layer_shell_surface.on_configure()] " << width << " x " << height << std::endl;
         layer_shell_surface.set_size(m_width, m_height);
-        layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone() ? m_height : 0);
+        layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone());
         surface.damage(0, 0, m_width, m_height);
         surface.commit();
       }

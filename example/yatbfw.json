@@ -5,7 +5,7 @@
 	"color" : [0.0 ,0.0 ,0.0],
 	"background_color" : [0.9, 0.9, 1],
 	"size" : 33,
-  "exclusive_zone" : true,
+  "exclusive_zone" : 33,
 	"position" : "top",
 	"start_items" : [
 		{

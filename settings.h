@@ -64,7 +64,7 @@ class Settings
    Color m_color;
    Color m_background_color;
    int m_panel_size;
-   bool m_exclusive_zone;
+   int m_exclusive_zone;
    PanelPosition m_panel_position;
 };
 

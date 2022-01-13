@@ -159,7 +159,7 @@ void Settings::load_settings(std::string path, Panel *panel)
     m_panel_position = PanelPosition::TOP;
   else
     m_panel_position = PanelPosition::BOTTOM;
-  m_exclusive_zone = json.get("exclusive_zone", "true").asString() == "true";
+  m_exclusive_zone = json.get("exclusive_zone", m_panel_size).asInt();
 
   const Json::Value color = json["color"];
   if(color != Json::ValueType::nullValue) {

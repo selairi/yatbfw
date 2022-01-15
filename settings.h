@@ -49,7 +49,7 @@ class Settings
     Color background_color();
 
     int panel_size();
-    bool exclusive_zone();
+    int exclusive_zone();
 
     const char* cursor_theme();
     int cursor_size();

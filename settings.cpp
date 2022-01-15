@@ -91,7 +91,7 @@ int Settings::panel_size()
   return m_panel_size;
 }
 
-bool Settings::exclusive_zone()
+int Settings::exclusive_zone()
 {
   return m_exclusive_zone;
 }
@@ -110,7 +110,7 @@ Settings::Settings()
   m_background_color = {.red = 0.9, .green = 0.9, .blue = 1.0};
   m_panel_size = 33;
   m_panel_position = PanelPosition::BOTTOM;
-  m_exclusive_zone = true;
+  m_exclusive_zone = m_panel_size;
 }
 
 static void load_items(const Json::Value &items, Panel *panel, bool start_pos)

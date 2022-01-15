@@ -23,7 +23,8 @@
 #include <execinfo.h>
 
 
-void printstacktrace(int sig) {
+void printstacktrace(int sig)
+{
   void *array[10];
   size_t size;
 
@@ -32,6 +33,17 @@ void printstacktrace(int sig) {
 
   // print out all the frames to stderr
   backtrace_symbols_fd(array, size, STDERR_FILENO);
+}
+
+void print_help(char *cmd)
+{
+  std::cout << cmd << R"( [--debug] [--settings file] [--help]
+  This a simple taskbar for Wayland. It needs layer-shell and foreign-toplevel Wayland protocols.
+  --debug shows debug output.
+  --help shows this help.
+  --settings file loads settings from "file" instead from ~/config/yatbfw.json
+
+)";  
 }
 
 int main(int argn, char *argv[])
@@ -51,6 +63,9 @@ int main(int argn, char *argv[])
         settings_file = true;
       } else if(!strcmp(argv[i], "--debug")) {
         m_debug = true;
+      } else if(!strcmp(argv[i], "--help")) {
+        print_help(argv[0]);
+        return 0;
       }
     }
     if(!settings_file) {

@@ -24,3 +24,7 @@ make
 ```
 
 Then edit "~.config/yatbfw.json" to configure your taskbar.
+
+# Settings
+
+In the example folder you can find examples of how to configure it.

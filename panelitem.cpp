@@ -12,7 +12,8 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
+#include "debug.h"
 #include "panelitem.h"
 #include "settings.h"
 #include <stdio.h>
@@ -201,9 +202,9 @@ long PanelItem::next_time_timeout(long now_in_msecs)
 }
 
 // The default implementation is empty
-void PanelItem::on_mouse_enter() { printf("on_mouse_enter\n"); } 
-void PanelItem::on_mouse_leave() { printf("on_mouse_leave\n");}
-void PanelItem::on_mouse_clicked(int button) { printf("on_mouse_clicked\n");}
-void PanelItem::on_mouse_released() { printf("on_mouse_released\n"); }
-void PanelItem::paint(cairo_t *cr) { printf("paint\n"); }
-void PanelItem::on_timeout() { }
+void PanelItem::on_mouse_enter() { debug << "on_mouse_enter\n"; } 
+void PanelItem::on_mouse_leave() { debug << "on_mouse_leave\n"; }
+void PanelItem::on_mouse_clicked(int button) { debug << "on_mouse_clicked\n"; }
+void PanelItem::on_mouse_released() { debug << "on_mouse_released\n"; }
+void PanelItem::paint(cairo_t *cr) { debug << "paint\n"; }
+void PanelItem::on_timeout() { debug << "on_timeout\n"; }

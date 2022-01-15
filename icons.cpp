@@ -12,7 +12,8 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+  
+#include "debug.h"
 #include "icons.h"
 #include <unordered_map>
 #include <regex>
@@ -74,7 +75,7 @@ static Index_theme_file read_index_theme_paths(std::string path, int panel_size)
 
   std::regex re_directories("^Directories=.*"), re_parents("^Inherits=.*");
 
-  std::cout << "Leyendo " << path + "/index.theme" << std::endl;
+  debug << "Reading " << path + "/index.theme" << std::endl;
   std::ifstream in(path + "/index.theme");
   for(std::string line; std::getline(in, line); ) {
     if(std::regex_match(line, re_directories)) {
@@ -127,7 +128,7 @@ static std::vector<std::string> categories_from_theme_path(std::string path, int
 
 static std::string get_icon_for_theme(std::string path, std::string theme, std::string icon_name, int panel_size)
 {
-  std::cout << "[get_icon_for_theme] path " << path << " theme " << theme << " icon " << icon_name << " panel_size " << panel_size << std::endl;
+  debug << "path " << path << " theme " << theme << " icon " << icon_name << " panel_size " << panel_size << std::endl;
   std::vector<std::string> formats = {".png", ".svg"};
   Index_theme_file index_theme;
   if(theme == "hicolor")
@@ -138,7 +139,7 @@ static std::string get_icon_for_theme(std::string path, std::string theme, std::
   for(std::string category : index_theme.paths) {
     for(std::string format : formats) {
       std::string icon = path + "/" + theme + "/" + category + "/" + icon_name + format;
-      //std::cout << "*** " << icon << std::endl;
+      //debug << "*** " << icon << std::endl;
       std::filesystem::directory_entry icon_direntry(icon);
       if(icon_direntry.exists()) {
         return icon;
@@ -171,7 +172,7 @@ std::string Icon::suggested_icon_for_id(std::string id)
   }
   std::string icon;
   Settings *settings = Settings::get_settings();
-  std::cout << "suggested_icon_for_id " << id << " " << id + std::string("\\.png$") << std::endl;
+  debug << "suggested_icon_for_id " << id << " " << id + std::string("\\.png$") << std::endl;
   
   // Paths of icon themes
   std::vector<std::string> icon_theme_paths;
@@ -224,7 +225,7 @@ Icon *Icon::get_icon(std::string path)
 void Icon::ref()
 {
   m_ref_count++;
-  std::cout << "[Icon::ref] " << m_path << " ref " << m_ref_count << std::endl; 
+  debug << m_path << " ref " << m_ref_count << std::endl; 
 }
 
 void Icon::unref()

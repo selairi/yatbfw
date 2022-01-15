@@ -37,6 +37,7 @@ add_executable(yatbfw
   settings.cpp
   utils.cpp
   icons.cpp
+  debug.cpp
   protocols/layer-shell.cpp
   protocols/toplevel.cpp
 )

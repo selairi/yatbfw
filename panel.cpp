@@ -13,7 +13,7 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-
+#include "debug.h"
 #include <stdexcept>
 #include <iostream>
 #include <array>
@@ -61,9 +61,9 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, m_width, m_height, /*stride*/ m_width*4);
 
     if(cairo_surface_status(cairo_surface) == CAIRO_STATUS_SUCCESS)
-      printf("cairo_surface creado\n");
+      debug << "New cairo_surface\n";
     else
-      fprintf(stderr, "Error: cairo_surface no se puede crear: %s\n", cairo_status_to_string(cairo_surface_status(cairo_surface)));
+      debug_error << "cairo_surface cannot be created: " << cairo_status_to_string(cairo_surface_status(cairo_surface)) << std::endl;
   }
 
   Color color = Settings::get_settings()->color();
@@ -137,7 +137,7 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     surface.damage(0, 0, m_width, m_height);
 
   surface.commit();
-  printf("Redibujado\n");
+  debug << "draw finished\n";
 }
 
 Panel::Panel()
@@ -158,60 +158,61 @@ void Panel::init()
   registry = display.get_registry();
   registry.on_global() = [&] (uint32_t name, const std::string& interface, uint32_t version)
   {
-    std::cout << interface << " version " << version << std::endl;
+    debug << "Found interface " << interface << " version " << version << std::endl;
 
     if(interface == compositor_t::interface_name) {
       registry.bind(name, compositor, version);
-      std::cout << "registrando " << compositor_t::interface_name << std::endl;
+      std::cout << "Binding interface " << compositor_t::interface_name << std::endl;
     } /*else if(interface == shell_t::interface_name) {
       std::cout << "registrando " << shell_t::interface_name << std::endl;
       registry.bind(name, shell, version);
     }*/ 
     else if(interface == xdg_wm_base_t::interface_name) {
-      std::cout << "registrando " << xdg_wm_base_t::interface_name << std::endl;
+      debug << "Binding interface " << xdg_wm_base_t::interface_name << std::endl;
       registry.bind(name, xdg_wm_base, version);
     } else if(interface == seat_t::interface_name) {
-      std::cout << "registrando " << seat_t::interface_name << std::endl;
+      debug << "Binding interface " << seat_t::interface_name << std::endl;
       registry.bind(name, seat, version);
     } else if(interface == shm_t::interface_name) {
-      std::cout << "registrando shm " << shm_t::interface_name << std::endl;
+      debug << "Binding interface " << shm_t::interface_name << std::endl;
       registry.bind(name, shm, version);
     } else if(interface == zwlr_layer_shell_v1_t::interface_name) {
-      std::cout << "registrando " << zwlr_layer_shell_v1_t::interface_name << std::endl;
+      debug << "Binding interface " << zwlr_layer_shell_v1_t::interface_name << std::endl;
       registry.bind(name, layer_shell, version);
     } else if(interface == zwlr_foreign_toplevel_manager_v1_t::interface_name) {
-      std::cout << "registrando output_t " << zwlr_foreign_toplevel_manager_v1_t::interface_name << std::endl;
+      debug << "Binding interface " << zwlr_foreign_toplevel_manager_v1_t::interface_name << std::endl;
       registry.bind(name, toplevel_manager, version);
       toplevel_manager.on_toplevel() = [&](zwlr_foreign_toplevel_handle_v1_t handle) {
-        std::cout << "  toplevel_manager::on_toplevel" << std::endl;
+        debug << "  toplevel_manager::on_toplevel" << std::endl;
         on_toplevel_listener(handle);
       };
     } else if(interface == output_t::interface_name) {
-      std::cout << "registrando " << output_t::interface_name << std::endl;
+      debug << "Binding interface " << output_t::interface_name << std::endl;
       registry.bind(name, output, version);
-      std::cout << "registrado" << std::endl;
+      debug << "Binding interface finished." << std::endl;
       output.on_mode() = [&](uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
         m_width = width;
       };
     }
 
   };
+  debug << "First roundtrip has been started" << std::endl;
   display.roundtrip();
-  std::cout << "Ejecutado roundtrip" << std::endl;
+  debug << "First roundtrip has been finished" << std::endl;
 
   // Check if all interfaces has been loaded
   if(!compositor) 
-    throw "wl_compositor interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "wl_compositor interface cannot been loaded from Wayland compositor.";
   else if(!seat) 
-    throw "wl_seat interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "wl_seat interface cannot been loaded from Wayland compositor.";
   else if(!shm) 
-    throw "wl_shm interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "wl_shm interface cannot been loaded from Wayland compositor.";
   else if(!layer_shell) 
-    throw "layer_shell interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "layer_shell interface cannot been loaded from Wayland compositor.";
   else if(!toplevel_manager) 
-    throw "foreign_toplevel interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "foreign_toplevel interface cannot been loaded from Wayland compositor.";
   else if(!output) 
-    throw "wl_output interface cannot been loaded from Wayland compositor.";
+    throw debug_get_func + "wl_output interface cannot been loaded from Wayland compositor.";
 
   seat.on_capabilities() = [&] (const seat_capability& capability)
   {
@@ -242,7 +243,7 @@ void Panel::init()
       if(m_width != width || m_height != height) {
         m_width = width;
         m_height = height; 
-        std::cout << "[layer_shell_surface.on_configure()] " << width << " x " << height << std::endl;
+        debug << "[layer_shell_surface.on_configure()] " << width << " x " << height << std::endl;
         layer_shell_surface.set_size(m_width, m_height);
         layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone());
         surface.damage(0, 0, m_width, m_height);
@@ -268,15 +269,15 @@ void Panel::init()
   // }
   surface.commit();
 
-  std::cout << "Iniciando segundo roundtrip" << std::endl;
+  debug << "Second roundtrip has been started" << std::endl;
   display.roundtrip();
-  std::cout << "Segundo roundtrip superado" << std::endl;
+  debug << "Second roundtrip has been finished" << std::endl;
 
   // Get input devices
   if(!has_keyboard)
-    throw std::runtime_error("No keyboard found.");
+    throw std::runtime_error(debug_get_func + "No keyboard found.");
   if(!has_pointer)
-    throw std::runtime_error("No pointer found.");
+    throw std::runtime_error(debug_get_func + "No pointer found.");
 
   pointer = seat.get_pointer();
   keyboard = seat.get_keyboard();
@@ -289,16 +290,16 @@ void Panel::init()
   cur_buf = 0;
 
   // load cursor theme
-  std::cout << "Creando tema del cursor " << Settings::get_settings()->cursor_theme() << std::endl;
+  debug << "Cursor theme " << Settings::get_settings()->cursor_theme() << std::endl;
   std::string theme(Settings::get_settings()->cursor_theme());
-  std::cout << "Creando tema del cursor " << Settings::get_settings()->cursor_size() << std::endl;
+  debug << "Cursor size " << Settings::get_settings()->cursor_size() << std::endl;
   cursor_theme_t cursor_theme = cursor_theme_t(theme, Settings::get_settings()->cursor_size(), shm);
-  std::cout << "Tema cargado" << std::endl; 
+  debug << "Cursor theme loaded" << std::endl; 
   cursor_t cursor = cursor_theme.get_cursor("left_ptr");
-  std::cout << "Flecha cargada" << std::endl;
+  debug << "Cursor arrow loaded" << std::endl;
   cursor_image = cursor.image(0);
   cursor_buffer = cursor_image.get_buffer();
-  std::cout << "Tema del cursor creado" << std::endl;
+  debug << "Ready cursor theme" << std::endl;
 
   // create cursor surface
   cursor_surface = compositor.create_surface();
@@ -310,7 +311,7 @@ void Panel::init()
     cursor_surface.damage(0, 0, cursor_image.width(), cursor_image.height());
     cursor_surface.commit();
     pointer.set_cursor(serial, cursor_surface, 0, 0);
-    printf("Cursor %d,%d\n", x, y);
+    debug << "Cursor " << x << y << std::endl;
     m_last_cursor_x = x;
     m_last_cursor_y = y;
     for(PanelItem *item : m_panel_items)
@@ -324,7 +325,7 @@ void Panel::init()
 
   pointer.on_leave() = [&] (uint32_t serial, const surface_t& /*unused*/)
   {
-    printf("on_leave\n");
+    debug << "on_leave\n";
     for(PanelItem *item : m_panel_items)
       item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
     for(ToplevelButton *item : m_toplevel_handles)
@@ -352,9 +353,9 @@ void Panel::init()
 
   pointer.on_button() = [&] (uint32_t serial, uint32_t /*unused*/, uint32_t button, pointer_button_state state)
   {
-    printf("Botón pulsado %d\n", button);
+    debug << "Button action  " << button << std::endl;
     if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
-      printf("Botón pulsado\n");
+      debug << "Button pressed\n";
       for(PanelItem *item : m_panel_items)
         item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
       for(ToplevelButton *item : m_toplevel_handles)
@@ -391,10 +392,10 @@ void Panel::init()
   };
 
   // draw stuff
-  std::cout << "Preparado para dibujar" << std::endl;
+  debug << "Ready to draw" << std::endl;
   draw();
   draw();
-  std::cout << "Dibujado" << std::endl;
+  debug << "Drawn" << std::endl;
 }
 
 
@@ -404,17 +405,15 @@ void Panel::on_toplevel_listener(zwlr_foreign_toplevel_handle_v1_t toplevel_hand
   toplevel->setWidth(Settings::get_settings()->panel_size());
   toplevel->setHeight(Settings::get_settings()->panel_size());
   toplevel->repaint_main_interface = [&](bool update_items_only) {
-    //draw(-1, update_items_only);
     if(update_items_only)
       m_repaint_partial = true;
     else
       m_repaint_full = true;
   };
   if(! toplevel)
-    std::cerr << "Error: No free memory" << std::endl;
+    debug_error << "No free memory" << std::endl;
   else
     m_toplevel_handles.push_back(toplevel);
-  //draw(-1, false);
   m_repaint_full = true;
 }
 
@@ -488,20 +487,17 @@ void Panel::run()
     timeout_msecs = -1;
     for(PanelItem *item : m_panel_items) {
       long item_timeout = item->next_time_timeout(now_in_msecs);
-      //printf("\n item_timeout %ld\n", item_timeout);
-      //printf(" now_in_msecs %ld\n", now_in_msecs);
       if(item_timeout >= 0) {
         if(now_in_msecs >= item_timeout) {
           item->on_timeout(now_in_msecs);
           item_timeout = item->next_time_timeout(now_in_msecs);
-          //printf(" item_timeout %ld event run\n", item_timeout);
         }
         long timeout = item_timeout - now_in_msecs;
         if(timeout_msecs < 0 || timeout < timeout_msecs)
           timeout_msecs = timeout;
       }
     }
-    printf("Timeout %d\n", timeout_msecs);
+    debug << "Timeout " << timeout_msecs << std::endl;
     // Repaint interface
     if(m_repaint_full)
       draw();
@@ -519,12 +515,12 @@ void Panel::run()
         fds[0].revents = 0;
       }
     } else if(ret == 0) {
-      printf("  Timeout\n");
+      debug << "Timeout\n";
       //for(PanelItem *item : m_panel_items) {
       //  item->on_timeout();
       //}
     } else {
-      printf("  poll failed %d\n", ret);
+      debug << "poll failed %d" << ret << std::endl;
     }
   }
 }

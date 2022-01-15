@@ -12,7 +12,8 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+  
+#include "debug.h"
 #include "toplevelbutton.h"
 #include <iostream>
 #include <fstream>
@@ -42,14 +43,14 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     for(ToplevelButton *b : *m_toplevels) {
       if(b->m_id == m_id && b != this) {
         icon = b->getIcon();
-        std::cout << "[ToplevelButton::ToplevelButton] Icon already loaded for id " << id << " icon " << icon << std::endl; 
+        debug << "Icon has been already loaded for id " << id << " icon " << icon << std::endl; 
         break;
       }
     }
     if(icon.empty()) {
       icon = suggested_icon_for_id(id);
     }
-    std::cout << "                 icon " << id << " " << icon << std::endl;
+    debug << "\ticon " << id << " " << icon << std::endl;
     if(icon.empty())
       icon = suggested_icon_for_id(std::string("dialog-question"));
     if(icon.empty())
@@ -139,7 +140,7 @@ static std::string get_icon_from_desktop_file(std::string path, std::string id)
 {
   std::string icon;
   std::filesystem::path p(path + id + std::string(".desktop"));
-  std::cout << "[ToplevelButton::get_icon_from_desktop_file] desktop file " << p.string() << std::endl;
+  debug << "desktop file " << p.string() << std::endl;
   std::filesystem::directory_entry entry(p);
   if(entry.exists()) {
     std::ifstream in(p.c_str());
@@ -148,12 +149,12 @@ static std::string get_icon_from_desktop_file(std::string path, std::string id)
       std::smatch m;
       if(std::regex_match(line, m, re)) {
         icon = m[1];
-        std::cout << " icon found in desktop file " << icon << std::endl;
+        debug << "icon found in desktop file " << icon << std::endl;
         break;
       }
     }
   } else {
-    std::cout << " desktop file " << p.string() << " doesn't exists." << std::endl;
+    debug << "desktop file " << p.string() << " doesn't exists." << std::endl;
   }
   return icon;
 }

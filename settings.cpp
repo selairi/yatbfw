@@ -12,7 +12,8 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+  
+#include "debug.h"
 #include "settings.h"
 #include "panel.h"
 #include "utils.h"
@@ -134,7 +135,7 @@ static void load_items(const Json::Value &items, Panel *panel, bool start_pos)
 
 void Settings::load_settings(std::string path, Panel *panel)
 {
-  std::cout << "[Settings::load_settings] loading... " << path << std::endl; 
+  debug << "Loading... " << path << std::endl; 
 
   Json::Value json;
   std::ifstream json_file(path);
@@ -149,7 +150,7 @@ void Settings::load_settings(std::string path, Panel *panel)
     m_icon_theme = theme;
   }
 
-  std::cout << "icon_theme "  << m_icon_theme << std::endl;
+  debug << "icon_theme "  << m_icon_theme << std::endl;
 
   m_font = json.get("font", "Helvetica").asString();
   m_font_size = json.get("font_size", 20).asInt();
@@ -160,6 +161,7 @@ void Settings::load_settings(std::string path, Panel *panel)
   else
     m_panel_position = PanelPosition::BOTTOM;
   m_exclusive_zone = json.get("exclusive_zone", m_panel_size).asInt();
+  debug << "exclusive_zone " << m_exclusive_zone << std:: endl;
 
   const Json::Value color = json["color"];
   if(color != Json::ValueType::nullValue) {

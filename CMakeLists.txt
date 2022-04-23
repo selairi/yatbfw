@@ -4,8 +4,8 @@ project (yatbfw VERSION 0.1)
 set(CMAKE_CXX_STANDARD 17)
 
 include(FindPkgConfig)
-find_library(LIBRT rt)
-mark_as_advanced(LIBRT)
+#find_library(LIBRT rt)
+#mark_as_advanced(LIBRT)
 
 pkg_check_modules(RSVG REQUIRED librsvg-2.0>=2.46)
 
@@ -44,9 +44,9 @@ add_executable(yatbfw
 
 include_directories(${RSVG_INCLUDE_DIRS} ${EXTRA_INCLUDES} "${PROJECT_BINARY_DIR}")
 target_link_libraries(yatbfw wayland-client++ wayland-client-extra++ wayland-cursor++ cairo ${RSVG_LIBRARIES} jsoncpp)
-if(LIBRT)
-  target_link_libraries(yatbfw "${LIBRT}")
-endif()
+#if(LIBRT)
+#  target_link_libraries(yatbfw "${LIBRT}")
+#endif()
 
 install(TARGETS yatbfw DESTINATION bin)
 install(FILES ${SHARE_FILES} DESTINATION share/yatbfw)

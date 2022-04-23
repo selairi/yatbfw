@@ -69,12 +69,16 @@ int main(int argn, char *argv[])
       }
     }
     if(!settings_file) {
-      std::string path(settings->get_env("XDG_CONFIG_HOME") + "/yatbfw.json");
+      std::string config_path = settings->get_env("XDG_CONFIG_HOME");
+      if(config_path.empty())
+        config_path = settings->get_env("HOME") + "/.config";
+      std::string path(config_path + "/yatbfw.json");
       std::filesystem::directory_entry settings_entry(path);
       if(settings_entry.exists())
         settings->load_settings(path, &panel);
       else {
         std::filesystem::directory_entry settings_orig(SHARE_PATH + std::string("/yatbfw.json"));
+        std::cout << "Copying " << settings_orig << " to " << settings_entry << std::endl;
         std::filesystem::copy_file(settings_orig, settings_entry);
         settings->load_settings(path, &panel);
       }

@@ -443,20 +443,20 @@ enum class zwlr_layer_surface_v1_error : uint32_t
 /** \brief 
 
   */
-struct zwlr_layer_surface_v1_anchor : public detail::bitfield<4, 4>
+struct zwlr_layer_surface_v1_anchor : public wayland::detail::bitfield<4, 4>
 {
-  zwlr_layer_surface_v1_anchor(const detail::bitfield<4, 4> &b)
-    : detail::bitfield<4, 4>(b) {}
+  zwlr_layer_surface_v1_anchor(const wayland::detail::bitfield<4, 4> &b)
+    : wayland::detail::bitfield<4, 4>(b) {}
   zwlr_layer_surface_v1_anchor(const uint32_t value)
-    : detail::bitfield<4, 4>(value) {}
+    : wayland::detail::bitfield<4, 4>(value) {}
   /** \brief the top edge of the anchor rectangle */
-  static const detail::bitfield<4, 4> top;
+  static const wayland::detail::bitfield<4, 4> top;
   /** \brief the bottom edge of the anchor rectangle */
-  static const detail::bitfield<4, 4> bottom;
+  static const wayland::detail::bitfield<4, 4> bottom;
   /** \brief the left edge of the anchor rectangle */
-  static const detail::bitfield<4, 4> left;
+  static const wayland::detail::bitfield<4, 4> left;
   /** \brief the right edge of the anchor rectangle */
-  static const detail::bitfield<4, 4> right;
+  static const wayland::detail::bitfield<4, 4> right;
 };
 
 

@@ -28,6 +28,15 @@ enum PanelPosition {
   BOTTOM, TOP
 };
 
+/*! \class Settings
+ *  \brief Load an read settings from json file.
+ *
+ *  Example:
+ *  Settings *s = Settings::get_settings();
+ *  s->load_settings("path to file", panel);
+ *  Color color = s->color();
+ *  ...
+ */
 class Settings
 {
   public:
@@ -35,7 +44,7 @@ class Settings
     Settings();
     /** Load settings from file path.
      */
-    void load_settings(std::string path, Panel *panel);
+    void load_settings(const std::string & path, Panel *panel);
     static std::string home_path();
     /** Gets enviroment variable.
      */
@@ -57,7 +66,7 @@ class Settings
     PanelPosition panel_position();
 
   private:
-   static Settings *m_settings; // Unique instance of settings
+   static Settings m_settings; // Unique instance of settings
    std::string m_icon_theme;
    std::string m_font;
    int m_font_size;

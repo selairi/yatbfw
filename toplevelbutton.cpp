@@ -25,7 +25,7 @@
 static std::string suggested_icon_for_id(std::string id);
 
 
-ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplevel_handle, wayland::seat_t seat, std::vector<ToplevelButton*> *toplevels) : Button()
+ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplevel_handle, wayland::seat_t seat, std::vector<std::shared_ptr<ToplevelButton> > *toplevels) : Button()
 { 
   m_toplevels = toplevels;
   m_toplevel_handle = toplevel_handle;
@@ -40,9 +40,9 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     m_id = id;
     std::string icon;
     // Is this icon already loaded?
-    for(ToplevelButton *b : *m_toplevels) {
-      if(b->m_id == m_id && b != this) {
-        icon = b->getIcon();
+    for(auto b : *m_toplevels) {
+      if(b->m_id == m_id && b.get() != this) {
+        icon = b->get_icon();
         debug << "Icon has been already loaded for id " << id << " icon " << icon << std::endl; 
         break;
       }
@@ -72,22 +72,26 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
   m_toplevel_handle.on_done() =[&]() {
   };
   m_toplevel_handle.on_closed() =[&]() {
-    auto iter = std::remove(m_toplevels->begin(), m_toplevels->end(), this);
+    auto iter = std::remove_if(
+        m_toplevels->begin(), m_toplevels->end(), 
+        [this](std::shared_ptr<ToplevelButton> item) {
+          return item.get() == this;
+        }
+    );
     m_toplevels->erase(iter, m_toplevels->end());
     repaint_main_interface(false);
-    delete this;
   };
 }
 
-void ToplevelButton::on_mouse_clicked(int button)
+void ToplevelButton::mouse_clicked(int button)
 {
   if(!m_activated) {
     if(m_minimized)
       m_toplevel_handle.unset_minimized();
     m_toplevel_handle.activate(m_seat);
-    for(ToplevelButton *b : *m_toplevels)
-      b->setSelected(false);
-    setSelected(true);
+    for(auto b : *m_toplevels)
+      b->set_selected(false);
+    set_selected(true);
   } else {
     if(button == BTN_LEFT) {
       if(m_maximized)
@@ -108,13 +112,13 @@ void ToplevelButton::on_mouse_clicked(int button)
 void ToplevelButton::update_states(wayland::array_t toplevel_states)
 {  
   m_maximized = m_activated = m_minimized = m_fullscreen = false;
-  setSelected(false);
+  set_selected(false);
   auto states = static_cast<std::vector<wayland::zwlr_foreign_toplevel_handle_v1_state> >(toplevel_states);
   for(wayland::zwlr_foreign_toplevel_handle_v1_state state : states) {
     switch(state) {
       case wayland::zwlr_foreign_toplevel_handle_v1_state::activated:
         m_activated = true;
-        setSelected(true);
+        set_selected(true);
         break;
       case wayland::zwlr_foreign_toplevel_handle_v1_state::maximized:
         m_maximized = true;
@@ -186,5 +190,10 @@ static std::string suggested_icon_for_id(std::string id)
     return icon;
 
   return std::string();
+}
+
+void ToplevelButton::mouse_enter()
+{
+  show_tooltip(m_title);
 }
 

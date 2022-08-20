@@ -22,13 +22,11 @@
 #include <iostream>
 #include <stdlib.h>
 
-Settings *Settings::m_settings = nullptr;
+Settings Settings::m_settings;
 
 Settings *Settings::get_settings()
 {
-  if(m_settings == nullptr)
-    m_settings = new Settings();
-  return m_settings;
+  return &m_settings;
 }
 
 std::string Settings::home_path()
@@ -120,20 +118,40 @@ static void load_items(const Json::Value &items, Panel *panel, bool start_pos)
       std::string icon = item.get("icon", "").asString();
       std::string exec = item.get("exec", "").asString();
       std::string text = item.get("text", "").asString();
-      panel->addLauncher(icon, text, exec, start_pos);
+      std::string tooltip = item.get("tooltip", "").asString();
+      panel->add_launcher(icon, text, tooltip, exec, start_pos);
     } else if(item.get("type", "").asString() == std::string("clock")) {
       std::string icon = item.get("icon", "").asString();
       std::string exec = item.get("exec", "").asString();
       std::string format = item.get("time_format", "").asString();
-      panel->addClock(icon, format, exec, start_pos);
+      panel->add_clock(icon, format, exec, start_pos);
     } else if(item.get("type", "").asString() == std::string("battery")) {
+      std::string icon = item.get("icon", "").asString();
       std::string exec = item.get("exec", "").asString();
-      panel->addBattery(exec, start_pos);
+      std::string no_text = item.get("no_text", "").asString();
+      std::string icon_battery_full     = item.get("icon_battery_full", "").asString();
+      std::string icon_battery_good     = item.get("icon_battery_good", "").asString();
+      std::string icon_battery_medium   = item.get("icon_battery_medium", "").asString();
+      std::string icon_battery_low      = item.get("icon_battery_low", "").asString();
+      std::string icon_battery_empty    = item.get("icon_battery_empty", "").asString();
+      std::string icon_battery_charging = item.get("icon_battery_charging", "").asString();
+      std::string icon_battery_charged  = item.get("icon_battery_charged", "").asString();
+
+      panel->add_battery(
+          icon_battery_full,
+          icon_battery_good,    
+          icon_battery_medium,  
+          icon_battery_low,     
+          icon_battery_empty,   
+          icon_battery_charging,
+          icon_battery_charged, 
+          no_text != "",
+          exec, start_pos);
     }
   }
 }
 
-void Settings::load_settings(std::string path, Panel *panel)
+void Settings::load_settings(const std::string & path, Panel *panel)
 {
   debug << "Loading... " << path << std::endl; 
 

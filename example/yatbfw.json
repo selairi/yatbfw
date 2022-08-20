@@ -23,19 +23,35 @@
    *      {
    *        "type" : "launcher",
    *        "icon" : "lxqt",
+   *        "tooltip" : "LXQt Launcher",
    *        "exec" : "pcmanfm-qt 'menu://applications/'"
    *      }
    *  - clock: It is a clock. "time_format" can be set using the strftime format. Read "man strftime".
    *    Command can be runned if it is clicked. Example:
    *      {
    *        "type" : "clock",
+   *        "icon" : "battery-symbolic", // icon can be removed
    *        "time_format" : "%H:%M",
    *        "exec" : "zenity --calendar --text= --title=`date +%Y-%m-%d`"
    *      }
    *  - battery: Shows percent of battery capacity.
+   *      The minimal settings for battery are:
    *      {
    *           "type" : "battery",
    *           "exec" : "qps"
+   *      }
+   *      The full arguments for battery settings are:
+   *      {
+   *        "type" : "battery",
+   *        "icon_battery_full" : "battery-full-symbolic",
+   *        "icon_battery_good" : "battery-good-symbolic",
+   *        "icon_battery_medium" : "battery-medium-symbolic",
+   *        "icon_battery_low" : "battery-low-symbolic",
+   *        "icon_battery_empty" : "battery-empty-symbolic",
+   *        "icon_battery_charging" : "battery-low-charging-symbolic",
+   *        "icon_battery_charged" : "battery-full-charged-symbolic", 
+   *        "no_text" : "empty", // The battery level label can be removed
+   *        "exec" : "qps"
    *      }
    */
    /* "start_items" and "end_items" are list of items that will be placed at start or end of the panel.
@@ -43,7 +59,8 @@
    "start_items" : [
     {
       "type" : "launcher",
-            "icon" : "lxqt",
+      "icon" : "lxqt",
+      "tooltip" : "LXQt Launcher",
       "exec" : "pcmanfm-qt 'menu://applications/'"
     },
     {
@@ -60,11 +77,20 @@
     },
     {
       "type" : "battery",
+      "icon_battery_full" : "battery-full-symbolic",
+      "icon_battery_good" : "battery-good-symbolic",
+      "icon_battery_medium" : "battery-medium-symbolic",
+      "icon_battery_low" : "battery-low-symbolic",
+      "icon_battery_empty" : "battery-empty-symbolic",
+      "icon_battery_charging" : "battery-low-charging-symbolic",
+      "icon_battery_charged" : "battery-full-charged-symbolic", 
+      "no_text" : "empty",
       "exec" : "qps"
     },
     {
       "type" : "launcher",
       "icon" : "network-wireless",
+      "tooltip" : "Wireless GUI",
       "exec" : "qterminal -e nmtui"
     },
     {

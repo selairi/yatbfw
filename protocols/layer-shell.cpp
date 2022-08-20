@@ -5,7 +5,7 @@
 #include <layer-shell.h>
 
 using namespace wayland;
-using namespace detail;
+using namespace wayland::detail;
 
 const wl_interface* zwlr_layer_shell_v1_interface_get_layer_surface_request[5] = {
   &zwlr_layer_surface_v1_interface,
@@ -220,6 +220,7 @@ zwlr_layer_surface_v1_t zwlr_layer_shell_v1_t::get_layer_surface(surface_t const
   return zwlr_layer_surface_v1_t(p);
 }
 
+
 int zwlr_layer_shell_v1_t::dispatcher(uint32_t opcode, const std::vector<any>& args, const std::shared_ptr<detail::events_base_t>& e)
 {
   return 0;
@@ -283,44 +284,53 @@ void zwlr_layer_surface_v1_t::set_size(uint32_t width, uint32_t height)
   marshal(0U, width, height);
 }
 
+
 void zwlr_layer_surface_v1_t::set_anchor(zwlr_layer_surface_v1_anchor const& anchor)
 {
   marshal(1U, static_cast<uint32_t>(anchor));
 }
+
 
 void zwlr_layer_surface_v1_t::set_exclusive_zone(int32_t zone)
 {
   marshal(2U, zone);
 }
 
+
 void zwlr_layer_surface_v1_t::set_margin(int32_t top, int32_t right, int32_t bottom, int32_t left)
 {
   marshal(3U, top, right, bottom, left);
 }
+
 
 void zwlr_layer_surface_v1_t::set_keyboard_interactivity(zwlr_layer_surface_v1_keyboard_interactivity const& keyboard_interactivity)
 {
   marshal(4U, static_cast<uint32_t>(keyboard_interactivity));
 }
 
+
 void zwlr_layer_surface_v1_t::get_popup(xdg_popup_t const& popup)
 {
   marshal(5U, popup.proxy_has_object() ? reinterpret_cast<wl_object*>(popup.c_ptr()) : nullptr);
 }
+
 
 void zwlr_layer_surface_v1_t::ack_configure(uint32_t serial)
 {
   marshal(6U, serial);
 }
 
+
 void zwlr_layer_surface_v1_t::set_layer(zwlr_layer_shell_v1_layer const& layer)
 {
   marshal(8U, static_cast<uint32_t>(layer));
 }
+
 bool zwlr_layer_surface_v1_t::can_set_layer() const
 {
   return (get_version() >= set_layer_since_version);
 }
+
 
 std::function<void(uint32_t, uint32_t, uint32_t)> &zwlr_layer_surface_v1_t::on_configure()
 {

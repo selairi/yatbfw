@@ -18,6 +18,9 @@
 
 #include <string>
 
+/*! \class Utils
+ *  \brief a simple set of utils to exec commands.
+ */
 class Utils
 {
   public:

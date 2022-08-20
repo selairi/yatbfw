@@ -81,11 +81,11 @@ class shared_mem_t
       if(fd)
       {
         if(munmap(mem, len) < 0)
-          std::cerr << "munmap failed.";
+          std::cerr << "munmap failed." << std::endl;
         if(close(fd) < 0)
-          std::cerr << "close failed.";
-        if(shm_unlink(name.c_str()) < 0)
-          std::cerr << "shm_unlink failed";
+          std::cerr << "close failed." << std::endl;
+        //if(shm_unlink(name.c_str()) < 0)
+        //  std::cerr << "shm_unlink failed: (file: " << name << ") " << strerror(errno) << std::endl;
       }
     }
 

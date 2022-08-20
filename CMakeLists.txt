@@ -29,6 +29,7 @@ add_executable(yatbfw
   main.cpp 
   panel.cpp
   panelitem.cpp
+  tooltip.cpp
   button.cpp
   buttonruncommand.cpp
   toplevelbutton.cpp

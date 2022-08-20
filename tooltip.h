@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2021 P.L. Lucas <selairi@gmail.com>
+ * Copyright 2022 P.L. Lucas <selairi@gmail.com>
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 
@@ -13,56 +13,65 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#ifndef __ICONS_H__
-#define __ICONS_H__
+#ifndef __TOOLTIP_H__
+#define __TOOLTIP_H__
 
-#include <string>
+#include <wayland-client.hpp>
+#include <wayland-client-protocol-extra.hpp>
+#include <linux/input.h>
+#include <wayland-cursor.hpp>
+#include <layer-shell.h>
 #include <cairo/cairo.h>
-#include <librsvg/rsvg.h>
+#include <string>
 #include <memory>
-#include <unordered_map>
 
-/*! \class Icon
- *  \brief Icon to draw in a cairo surface.
+using namespace wayland;
+
+class shared_mem_t;
+
+/*! \class ToolTip
+ *  \brief Shows a simple label with a message.
  *
- *  A icon from icons resources are loaded with get_icon method
- *  and can be paint with paint method.
- *  Icons are stored in a map and are they reused.
+ *  Shows a floating window with a message.
  */
-class Icon
+class ToolTip
 {
 public:
-  /*! \brief Don't use this constructor to load icons.
-   * Instead, use get_icon to load an icon.
-   * \param path is used as key of map.
-   * \param icon_path real path to icon image in disk.
-   */
-  Icon(const std::string & path, const std::string & icon_path);
-  virtual ~Icon();
+  ToolTip();
+  virtual ~ToolTip();
 
-  void paint(cairo_t *cr, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+  void init(compositor_t *compositor, display_t *display, xdg_wm_base_t *xdg_wm_base, shm_t *shm, zwlr_layer_surface_v1_t *layer_shell_surface, uint32_t *panel_width, uint32_t *panel_height);
 
-  std::string get_icon_path();
 
-  /*! \brief Load an icon from disk. The icon theme is used to
-   * choose the icon.
-   * \param path path to icon on disk or icon name.
-   * Example:
-   * auto firefox = Icon::get_icon("firefox");
-   */
-  static std::shared_ptr<Icon> get_icon(const std::string & path);
-  static std::string suggested_icon_for_id(std::string id);
+  void hide_tooltip();
+  void show_tooltip(const std::string & text, int offset);
 
+  static ToolTip *tooltip();
+  static void show(const std::string & text, int offset);
+  static void hide();
 private:
-  cairo_surface_t *m_icon;
-  RsvgHandle *m_svg_icon;
-  int m_icon_width, m_icon_height;
-  std::string m_path; // Icon id name
-  std::string m_icon_path;
-  uint32_t m_ref_count;
+  void draw_text(const std::string & text);
+  void find_size_for_text(const std::string & text);
+  void create_wayland_surface(int offset);
 
-  // Map of all loaded icons
-  static std::unordered_map<std::string, std::weak_ptr<Icon> > icons;
+
+  // Object shared with Panel
+  compositor_t *m_compositor;
+  display_t *m_display;
+  xdg_wm_base_t *m_xdg_wm_base;
+  shm_t *m_shm;
+  zwlr_layer_surface_v1_t *m_layer_shell_surface;
+  uint32_t *m_panel_width, *m_panel_height;
+
+  // Tooltip objects
+  surface_t m_surface;
+  xdg_surface_t m_xdg_surface;
+  xdg_positioner_t m_xdg_positioner;
+  xdg_popup_t m_xdg_popup;
+  std::shared_ptr<shared_mem_t> m_shared_mem;
+  std::array<buffer_t, 2> m_buffer;
+  cairo_surface_t *m_cairo_surface;
+  uint32_t m_width, m_height;
 };
 
 #endif

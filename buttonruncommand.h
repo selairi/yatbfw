@@ -21,22 +21,23 @@
 
 
 /*! \class ButtonRunCommand
- *  \brief Simple button to add to panel.
- *
- *  Detailed description
+ *  \brief Button with icon and/or image which runs a 
+ *  command when is clicked.
  */
 class ButtonRunCommand : public Button
 {
 public:
   ButtonRunCommand();
-  ButtonRunCommand(char *icon_path);
-  ButtonRunCommand(std::string text);
-  ButtonRunCommand(char *icon_path, std::string text);
+  ButtonRunCommand(const std::string & icon_path, const std::string & text, const std::string & tooltip);
 
-  void setCommand(std::string command);
-  void setFD(int fd);
+  void set_command(const std::string & command);
+  /** Set file descriptor from wayland wl_display.
+   * Example:
+   *  set_fd(display.get_fd());
+   */
+  void set_fd(int fd);
 
-  virtual void on_mouse_clicked(int button) override;
+  virtual void mouse_clicked(int button) override;
 
 private:
   std::string m_command;

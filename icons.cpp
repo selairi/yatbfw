@@ -15,7 +15,6 @@
   
 #include "debug.h"
 #include "icons.h"
-#include <unordered_map>
 #include <regex>
 #include <glib.h>
 #include <iostream>
@@ -25,18 +24,17 @@
 #include <stdlib.h>
 #include "settings.h"
 
-static std::unordered_map<std::string, Icon *> icons;
+std::unordered_map<std::string, std::weak_ptr<Icon> > Icon::icons;
 
 /** Gets size from icon path. Icons paths are "8x8/", "32x32/", "scalable".
  * This function tries to get size from path. If path is "8x8", it will return 8.
  * If path is "scalable", it will return -1.
  */
-static int get_size_from_path(std::string path)
+static int get_size_from_path(const std::string & path)
 {
   size_t pos = path.find('x');
   if(pos != std::string::npos) {
     std::string n = path.substr(0, pos);
-    //std::cout << "[get_size_from_path] " << n << std::endl;
     try {
       return std::stoi(n);
     } catch(const std::invalid_argument& e) {
@@ -51,7 +49,7 @@ static int get_size_from_path(std::string path)
 struct Sort_path_compare
 {
   int panel_size;
-  bool operator() (std::string i, std::string j)
+  bool operator() (const std::string & i, const std::string & j)
   {
     int n_i = get_size_from_path(i);
     if(n_i < 0) n_i = panel_size;
@@ -68,7 +66,7 @@ struct Index_theme_file {
   std::vector<std::string> parent_themes;
 };
 
-static Index_theme_file read_index_theme_paths(std::string path, int panel_size)
+static Index_theme_file read_index_theme_paths(const std::string & path, int panel_size)
 {
   std::vector<std::string> paths, parents;
   std::vector<int> sizes;
@@ -104,7 +102,7 @@ static Index_theme_file read_index_theme_paths(std::string path, int panel_size)
   return index_theme;
 }
 
-static std::vector<std::string> categories_from_theme_path(std::string path, int panel_size)
+static std::vector<std::string> categories_from_theme_path(const std::string & path, int panel_size)
 {
   std::vector<std::string> categories;
   if(std::filesystem::directory_entry(path).exists()) {
@@ -126,7 +124,7 @@ static std::vector<std::string> categories_from_theme_path(std::string path, int
   return categories;
 }
 
-static std::string get_icon_for_theme(std::string path, std::string theme, std::string icon_name, int panel_size)
+static std::string get_icon_for_theme(const std::string & path, const std::string & theme, const std::string & icon_name, int panel_size)
 {
   debug << "path " << path << " theme " << theme << " icon " << icon_name << " panel_size " << panel_size << std::endl;
   std::vector<std::string> formats = {".png", ".svg"};
@@ -167,9 +165,7 @@ std::string Icon::suggested_icon_for_id(std::string id)
   }
 
   // Change id of icon to lower case (icons are saved as lower case files)
-  for(char &ch : id){
-    ch = std::tolower(ch);
-  }
+  for(char &ch : id) {ch = std::tolower(ch);}
   std::string icon;
   Settings *settings = Settings::get_settings();
   debug << "suggested_icon_for_id " << id << " " << id + std::string("\\.png$") << std::endl;
@@ -203,64 +199,50 @@ std::string Icon::suggested_icon_for_id(std::string id)
 }
 
 
-Icon *Icon::get_icon(std::string path)
+std::shared_ptr<Icon> Icon::get_icon(const std::string & path)
 {
+  debug << path << std::endl;
   if(path.empty())
     return nullptr;
 
   auto item = icons.find(path);
   if(item == icons.end()) {
-    // Item not found create a new one
+    // Icon not found create a new one
     std::string icon_path = suggested_icon_for_id(path);
     if(icon_path.empty())
       return nullptr;
-    Icon *icon = new Icon(icon_path);
+    // Add icon to icons map
+    auto icon = std::make_shared<Icon>(path, icon_path);
     icons[path] = icon;
     return icon;
   } else {
-      return item->second;
+      return item->second.lock();
   }
 }
 
-void Icon::ref()
+std::string Icon::get_icon_path()
 {
-  m_ref_count++;
-  debug << m_path << " ref " << m_ref_count << std::endl; 
+  return m_icon_path;
 }
 
-void Icon::unref()
-{
-  m_ref_count--;
-  if(m_ref_count <= 0) {
-    // Icon must be deleted
-    auto item = icons.find(m_path);
-    icons.erase(item);
-    delete this;
-  }
-}
-
-std::string Icon::getIconPath()
-{
-  return m_path;
-}
-
-Icon::Icon(std::string path)
+Icon::Icon(const std::string & path, const std::string & icon_path)
 {
   m_ref_count = 0;
   m_path = path;
+  m_icon_path = icon_path;
   m_icon = nullptr;
   m_svg_icon = nullptr;
-  if(!path.empty()) {
-    std::string str(path);
+  if(!m_icon_path.empty()) {
+    std::string str(m_icon_path);
     if(std::regex_match(str, std::regex(".*\\.[Pp][Nn][Gg]"))) {
-      m_icon = cairo_image_surface_create_from_png (path.c_str());
+      m_icon = cairo_image_surface_create_from_png (m_icon_path.c_str());
       if(m_icon != nullptr) {
         m_icon_width = cairo_image_surface_get_width(m_icon);
         m_icon_height = cairo_image_surface_get_height(m_icon);
       }
     } else if(std::regex_match(str, std::regex(".*\\.[Ss][Vv][Gg]"))) {
       GError *error = nullptr;
-      m_svg_icon = rsvg_handle_new_from_file(path.c_str(), &error);
+      m_svg_icon = rsvg_handle_new_from_file(m_icon_path.c_str(), &error);
       if(!m_svg_icon) {
         std::cerr << error->message << std::endl;
         g_clear_error(&error);
@@ -272,16 +254,26 @@ Icon::Icon(std::string path)
 
 Icon::~Icon()
 {
+  // Delete icon from icons list
+  auto item = icons.find(m_path);
+  if(item != icons.end()) icons.erase(item);
+
+  // Release cairo objects
   cairo_surface_destroy(m_icon);
   g_object_unref(m_svg_icon);
+  m_icon = nullptr;
+  m_svg_icon = nullptr;
+  debug << "Icon " << m_path << " deleted." << std::endl;
 }
 
 void Icon::paint(cairo_t *cr, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
+  debug << " Start painting Icon " << m_path << std::endl;
   // Draws icon
   if(m_icon != nullptr) {
     cairo_save(cr);
     float scale = (float)height/(float)m_icon_height;
+    debug << "png icon x:" << x << " y:" << y << " scale:" << scale << std::endl;
     cairo_scale(cr, (float)height/(float)m_icon_width, scale);
     cairo_set_source_surface(cr, m_icon, x/scale, y/scale);
     cairo_paint(cr);
@@ -295,10 +287,12 @@ void Icon::paint(cairo_t *cr, uint32_t x, uint32_t y, uint32_t width, uint32_t h
     rect.y = y;
     rect.width = width;
     rect.height = height;
+    debug << "SVG icon x:" << x << " y:" << y << " w:" << width << " h:" << height << std::endl; 
     if(!rsvg_handle_render_document(m_svg_icon, cr, &rect, &error)) {
-      std::cerr << error->message << std::endl;
+      std::cerr << "[Icon::paint]" << m_path << ": " << error->message << std::endl;
       g_clear_error(&error);
       exit(1);
     }
   }
+  debug << " End painting Icon " << m_path << std::endl;
 }

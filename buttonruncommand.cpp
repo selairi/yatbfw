@@ -21,25 +21,34 @@
 #include <sys/wait.h>
 #include <linux/input-event-codes.h>
 
-ButtonRunCommand::ButtonRunCommand() : Button() { }
-ButtonRunCommand::ButtonRunCommand(char *icon_path) : Button(icon_path) { }
-ButtonRunCommand::ButtonRunCommand(std::string text) : Button(text) { }
-ButtonRunCommand::ButtonRunCommand(char *icon_path, std::string text) :  Button(icon_path, text) { }
+ButtonRunCommand::ButtonRunCommand() : Button() 
+{
+  m_fd = -1;
+}
+ButtonRunCommand::ButtonRunCommand(const std::string & icon_path, const std::string & text, const std::string & tooltip) :  Button(icon_path, text)
+{
+  m_fd = -1;
+  set_tooltip(tooltip);
+}
 
-void ButtonRunCommand::setCommand(std::string command)
+void ButtonRunCommand::set_command(const std::string & command)
 {
   m_command = command;
 }
 
-void ButtonRunCommand::setFD(int fd)
+void ButtonRunCommand::set_fd(int fd)
 {
   m_fd = fd;
 }
 
-void ButtonRunCommand::on_mouse_clicked(int button)
+void ButtonRunCommand::mouse_clicked(int button)
 {
   if(button == BTN_LEFT) {
     debug << m_command  << " &>/dev/null &" << std::endl;
+    if(m_fd < 0) {
+      debug_error << "File descriptor has not been set. Use set_fd to set it." << std::endl;
+      return;
+    }
     if(fork() == 0) {
       close(m_fd);
       system((m_command + " &> /dev/null &").c_str());

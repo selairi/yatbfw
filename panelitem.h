@@ -17,11 +17,12 @@
 #define __PANELITEM_H__
 
 #include <cairo/cairo.h>
+#include <string>
 
 /*! \class PanelItem
- *  \brief Brief class description
+ *  \brief Brief Base class for items in panel.
  *
- *  Detailed description
+ *  This is a base class for items in panel. 
  */
 class PanelItem
 {
@@ -29,15 +30,15 @@ public:
   PanelItem();
   virtual ~PanelItem() = default;
 
-  void setPos(int x, int y);
-  void setWidth(int width);
-  void setHeight(int height);
-  int getX();
-  int getY();
-  int getWidth();
-  int getHeight();
-  bool getSelected();
-  void setSelected(bool selected);
+  void set_pos(int x, int y);
+  void set_width(int width);
+  void set_height(int height);
+  int get_x();
+  int get_y();
+  int get_width();
+  int get_height();
+  bool get_selected();
+  void set_selected(bool selected);
   bool is_start_pos();
   void set_start_pos(bool pos);
 
@@ -55,13 +56,15 @@ public:
   void set_timeout(int timeout_msecs);
   long next_time_timeout(long now_in_msecs);
 
+  void show_tooltip(std::string text);
+
   virtual void paint(cairo_t *cr);
 
-  virtual void on_mouse_enter(); 
-  virtual void on_mouse_leave();
-  virtual void on_mouse_clicked(int button);
-  virtual void on_mouse_released();
-  virtual void on_timeout();
+  virtual void mouse_enter(); 
+  virtual void mouse_leave();
+  virtual void mouse_clicked(int button);
+  virtual void mouse_released();
+  virtual void timeout();
 
 protected:
   int m_x; /*!< x postion*/ 

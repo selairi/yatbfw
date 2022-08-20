@@ -21,7 +21,7 @@
 #include <iostream>
 #include <filesystem>
 #include <execinfo.h>
-
+#include <locale.h>
 
 void printstacktrace(int sig)
 {
@@ -48,6 +48,9 @@ void print_help(char *cmd)
 
 int main(int argn, char *argv[])
 {
+  // Set locale to show dates in the right format
+  setlocale(LC_ALL, "");
+  
   signal(SIGSEGV, printstacktrace);
   Panel panel;
 
@@ -89,8 +92,6 @@ int main(int argn, char *argv[])
     panel.init();
     // Run events loop
     panel.run();
-    
-	delete settings;
   } catch(const std::exception& e) {
     std::cerr << "Exception launched:" << std::endl;
     std::cerr << e.what() << std::endl;

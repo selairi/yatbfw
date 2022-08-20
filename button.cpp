@@ -22,21 +22,13 @@
 
 Button::Button() : PanelItem()
 {
-  init(nullptr, std::string(""));
+  m_icon_ref = nullptr;
+  init(std::string(), std::string());
 }
 
-Button::Button(char *icon_path) : PanelItem()
+Button::Button(const std::string & icon_path, const std::string & text) : PanelItem()
 {
-  init(icon_path, std::string(""));
-}
-
-Button::Button(std::string text) : PanelItem()
-{
-  init(nullptr, text);
-}
-
-Button::Button(char *icon_path, std::string text) : PanelItem()
-{
+  m_icon_ref = nullptr;
   init(icon_path, text);
 }
 
@@ -45,50 +37,49 @@ Button::~Button()
   //cairo_surface_destroy(m_icon);
   //g_object_unref(m_svg_icon);
   debug << "deleted" << std::endl;
-  if(m_icon_ref != nullptr)
-    m_icon_ref->unref();
 }
 
-void Button::init(char *icon_path, std::string text)
+void Button::init(const std::string & icon_path, const std::string & text)
 {
   m_text = text;
-  if(icon_path != nullptr)
-    m_icon_ref = Icon::get_icon(std::string(icon_path));
-  else
+  if(! icon_path.empty()) {
+    m_icon_ref = Icon::get_icon(icon_path);
+  } else {
     m_icon_ref = nullptr;
-  if(m_icon_ref != nullptr)
-    m_icon_ref->ref();
+  }
 }
 
-void Button::setText(std::string text)
+void Button::set_text(const std::string & text)
 {
   m_text = text;
   m_need_repaint = true;
 }
 
-std::string Button::getText()
+std::string Button::get_text()
 {
   return m_text;
 }
 
-void Button::setIcon(char *icon_path)
+void Button::set_icon(const std::string & icon_path)
 {
-  if(m_icon_ref != nullptr)
-    m_icon_ref->unref();
-  init(icon_path, m_text);
-  m_need_repaint = true;
+  if(! icon_path.empty()) {
+    init(icon_path, m_text);
+    m_need_repaint = true;
+  }
 }
 
-std::string Button::getIcon()
+std::string Button::get_icon()
 {
   if(m_icon_ref != nullptr)
-    return m_icon_ref->getIconPath();
+    return m_icon_ref->get_icon_path();
   else
     return std::string();
 }
 
-void Button::draw_text(cairo_t *cr, std::string text)
+void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text)
 {
+  int text_width = m_width - x_offset;
+  int text_height = m_height - y_offset;
   std::vector<std::string> lines;
 
   // Get lines of text
@@ -106,7 +97,7 @@ void Button::draw_text(cairo_t *cr, std::string text)
   }
 
   cairo_save(cr);
-  cairo_rectangle(cr, m_x, m_y, m_width, m_height);
+  cairo_rectangle(cr, m_x + x_offset, m_y + y_offset, text_width, text_height);
   cairo_clip(cr);
   Color color = Settings::get_settings()->color();
   cairo_set_source_rgba (cr, color.red, color.green, color.blue, 1.0);
@@ -116,31 +107,55 @@ void Button::draw_text(cairo_t *cr, std::string text)
   for(std::string line : lines) {
     cairo_text_extents_t extents;
     cairo_text_extents(cr, line.c_str(), &extents);
-    if(m_width < extents.width)
-      m_width = extents.width + 6;
+    if(text_width < extents.width)
+      text_width = extents.width + 6;
     height += extents.height;
   }
   int sep = 0;
-  if(m_height > height)
-    sep = (m_height - height) / (lines.size() + 1);
-  int y = m_y + sep;
+  if(text_height > height)
+    sep = (text_height - height) / (lines.size() + 1);
+  int y = m_y + y_offset + sep;
   for(std::string line : lines) {
     cairo_text_extents_t extents;
     cairo_text_extents(cr, line.c_str(), &extents);
     width = extents.width + 6;
-    cairo_move_to(cr, m_x + (m_width - width) / 2.0, y + extents.height);
+    cairo_move_to(cr, m_x + x_offset + (text_width - width) / 2.0, y + extents.height);
     cairo_show_text(cr, line.c_str());
     y += extents.height + sep;
   }
   cairo_restore(cr);
+
+  if((text_height + y_offset) > m_height)
+    m_height = text_height + y_offset;
+  if((text_width + x_offset) > m_width)
+    m_width = text_width + x_offset; 
 }
 
 void Button::paint(cairo_t *cr)
 {
+  int offset = 0;
   // Draws icon
-  if(m_icon_ref != nullptr)
-    m_icon_ref->paint(cr, m_x, m_y, m_width, m_height);
+  if(m_icon_ref != nullptr) {
+    offset = (m_width > m_height ? m_height : m_width);
+    m_icon_ref->paint(cr, m_x, m_y, offset - 1, offset - 1);
+  }
 
   if(! m_text.empty())
-    draw_text(cr, m_text);
+    draw_text(cr, offset, 0, m_text);
+}
+
+void Button::set_tooltip(const std::string & tooltip)
+{
+  m_tooltip = tooltip;
+}
+
+std::string Button::get_tooltip()
+{
+  return m_tooltip;
+}
+
+void Button::mouse_enter()
+{
+  if(!m_tooltip.empty())
+    show_tooltip(m_tooltip);
 }

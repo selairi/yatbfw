@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "panelitem.h"
 #include "settings.h"
+#include "tooltip.h"
 #include <stdio.h>
 
 
@@ -30,43 +31,43 @@ PanelItem::PanelItem()
   m_next_time_timeout = -1;
 }
 
-void PanelItem::setPos(int x, int y)
+void PanelItem::set_pos(int x, int y)
 {
   m_x = x;
   m_y = y;
 }
 
-void PanelItem::setWidth(int width)
+void PanelItem::set_width(int width)
 {
   m_width = width;
 }
 
-void PanelItem::setHeight(int height)
+void PanelItem::set_height(int height)
 {
   m_height = height;
 }
 
-int PanelItem::getX()
+int PanelItem::get_x()
 {
   return m_x;
 }
 
-int PanelItem::getY()
+int PanelItem::get_y()
 {
   return m_y;
 }
 
-int PanelItem::getWidth()
+int PanelItem::get_width()
 {
   return m_width;
 }
 
-int PanelItem::getHeight()
+int PanelItem::get_height()
 {
   return m_height;
 }
 
-bool PanelItem::getSelected()
+bool PanelItem::get_selected()
 {
   return m_selected;
 }
@@ -81,7 +82,7 @@ void PanelItem::set_start_pos(bool pos)
   m_start_position = pos;
 }
 
-void PanelItem::setSelected(bool selected)
+void PanelItem::set_selected(bool selected)
 {
   m_need_repaint = m_selected != selected;
   m_selected = selected;
@@ -137,7 +138,7 @@ void PanelItem::on_mouse_leave(int x, int y, bool leave)
     m_mouse_over = false;
     m_mouse_clicked = false;
     m_need_repaint = true;
-    on_mouse_leave();
+    mouse_leave();
   }
 }
 
@@ -147,7 +148,7 @@ void PanelItem::on_mouse_clicked(int x, int y, int button)
     m_mouse_over = true;
     m_mouse_clicked = true;
     m_need_repaint = true;
-    on_mouse_clicked(button);
+    mouse_clicked(button);
   }
 }
 
@@ -157,7 +158,7 @@ void PanelItem::on_mouse_released(int x, int y)
     m_mouse_over = true;
     m_mouse_clicked = false;
     m_need_repaint = true;
-    on_mouse_released();
+    mouse_released();
   }
 }
 
@@ -167,14 +168,14 @@ void PanelItem::on_mouse_enter(int x, int y)
     m_mouse_over = true;
     m_mouse_clicked = false;
     m_need_repaint = true; 
-    on_mouse_enter();
+    mouse_enter();
   }
 }
 
 void PanelItem::on_timeout(long now_in_msecs)
 {
   if(now_in_msecs > m_next_time_timeout) {
-    on_timeout();
+    timeout();
     m_next_time_timeout = now_in_msecs + m_timeout_msecs;
   }
 }
@@ -201,10 +202,20 @@ long PanelItem::next_time_timeout(long now_in_msecs)
   return m_next_time_timeout;
 }
 
+void PanelItem::show_tooltip(std::string text)
+{
+  switch(Settings::get_settings()->panel_position()) {
+    case PanelPosition::BOTTOM:
+    case PanelPosition::TOP:
+      ToolTip::show(text, m_x);
+      break;
+  }
+}
+
 // The default implementation is empty
-void PanelItem::on_mouse_enter() { debug << "on_mouse_enter\n"; } 
-void PanelItem::on_mouse_leave() { debug << "on_mouse_leave\n"; }
-void PanelItem::on_mouse_clicked(int button) { debug << "on_mouse_clicked\n"; }
-void PanelItem::on_mouse_released() { debug << "on_mouse_released\n"; }
+void PanelItem::mouse_enter() { debug << "on_mouse_enter\n"; } 
+void PanelItem::mouse_leave() { debug << "on_mouse_leave\n"; }
+void PanelItem::mouse_clicked(int button) { debug << "on_mouse_clicked\n"; }
+void PanelItem::mouse_released() { debug << "on_mouse_released\n"; }
 void PanelItem::paint(cairo_t *cr) { debug << "paint\n"; }
-void PanelItem::on_timeout() { debug << "on_timeout\n"; }
+void PanelItem::timeout() { debug << "on_timeout\n"; }

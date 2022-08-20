@@ -5,7 +5,7 @@
 #include <toplevel.h>
 
 using namespace wayland;
-using namespace detail;
+using namespace wayland::detail;
 
 const wl_interface* zwlr_foreign_toplevel_manager_v1_interface_stop_request[0] = {
 };
@@ -275,6 +275,7 @@ void zwlr_foreign_toplevel_manager_v1_t::stop()
   marshal(0U);
 }
 
+
 std::function<void(zwlr_foreign_toplevel_handle_v1_t)> &zwlr_foreign_toplevel_manager_v1_t::on_toplevel()
 {
   return std::static_pointer_cast<events_t>(get_events())->toplevel;
@@ -356,53 +357,64 @@ void zwlr_foreign_toplevel_handle_v1_t::set_maximized()
   marshal(0U);
 }
 
+
 void zwlr_foreign_toplevel_handle_v1_t::unset_maximized()
 {
   marshal(1U);
 }
+
 
 void zwlr_foreign_toplevel_handle_v1_t::set_minimized()
 {
   marshal(2U);
 }
 
+
 void zwlr_foreign_toplevel_handle_v1_t::unset_minimized()
 {
   marshal(3U);
 }
+
 
 void zwlr_foreign_toplevel_handle_v1_t::activate(seat_t const& seat)
 {
   marshal(4U, seat.proxy_has_object() ? reinterpret_cast<wl_object*>(seat.c_ptr()) : nullptr);
 }
 
+
 void zwlr_foreign_toplevel_handle_v1_t::close()
 {
   marshal(5U);
 }
+
 
 void zwlr_foreign_toplevel_handle_v1_t::set_rectangle(surface_t const& surface, int32_t x, int32_t y, int32_t width, int32_t height)
 {
   marshal(6U, surface.proxy_has_object() ? reinterpret_cast<wl_object*>(surface.c_ptr()) : nullptr, x, y, width, height);
 }
 
+
 void zwlr_foreign_toplevel_handle_v1_t::set_fullscreen(output_t const& output)
 {
   marshal(8U, output.proxy_has_object() ? reinterpret_cast<wl_object*>(output.c_ptr()) : nullptr);
 }
+
 bool zwlr_foreign_toplevel_handle_v1_t::can_set_fullscreen() const
 {
   return (get_version() >= set_fullscreen_since_version);
 }
 
+
 void zwlr_foreign_toplevel_handle_v1_t::unset_fullscreen()
 {
   marshal(9U);
 }
+
 bool zwlr_foreign_toplevel_handle_v1_t::can_unset_fullscreen() const
 {
   return (get_version() >= unset_fullscreen_since_version);
 }
+
 
 std::function<void(std::string)> &zwlr_foreign_toplevel_handle_v1_t::on_title()
 {

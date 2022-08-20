@@ -27,7 +27,7 @@ static std::string get_time(std::string timeformat)
   time(&rawtime);
   timeinfo = localtime(&rawtime);
 
-  strftime (buffer,80, timeformat.c_str(), timeinfo);
+  strftime(buffer, 80, timeformat.c_str(), timeinfo);
 
   return std::string(buffer);
 }
@@ -44,26 +44,25 @@ static int get_timeout_from_timeformat(const std::string &timeformat)
   return timeout;
 }
 
-Clock::Clock(std::string timeformat) : ButtonRunCommand() 
+Clock::Clock(const std::string & icon, const std::string & timeformat) : ButtonRunCommand(icon, std::string(), std::string()) 
 {
   m_timeformat = timeformat;
-  setText(get_time(timeformat));
-  set_timeout(get_timeout_from_timeformat(timeformat));
-}
-
-Clock::Clock(char* icon, std::string timeformat) : ButtonRunCommand(icon) 
-{
-  m_timeformat = timeformat;
-  setText(get_time(timeformat));
+  set_text(get_time(timeformat));
   set_timeout(get_timeout_from_timeformat(timeformat));
   debug << "Time format: " << timeformat.c_str() << std::endl;
 }
 
-void Clock::on_timeout()
+void Clock::timeout()
 {
   std::string time = get_time(m_timeformat);
-  if(time != getText()) {
-    setText(time);
+  if(time != get_text()) {
+    set_text(time);
     send_repaint();
   }
+}
+
+void Clock::mouse_enter()
+{
+  std::string time = get_time("%A %d\n%B %Y\n%x");
+  show_tooltip(time);
 }

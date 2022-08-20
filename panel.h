@@ -26,6 +26,7 @@
 #include <toplevel.h>
 #include "button.h"
 #include "toplevelbutton.h"
+#include "tooltip.h"
 
 #include <memory>
 
@@ -33,6 +34,12 @@ using namespace wayland;
 
 class shared_mem_t;
 
+/** \class Panel
+ *  \brief Main class that draws a panel.
+ *
+ *  This class draws a panel an controls wayland connection,
+ *  event loop and paints items in panel.
+ */
 class Panel
 {
 public:
@@ -46,17 +53,24 @@ public:
   void init();
   void run();
 
-  void addLauncher(std::string icon, std::string text, std::string exec, bool start_pos = true);
-  void addClock(std::string icon, std::string format, std::string exec, bool start_pos = true);
-  void addBattery(std::string exec, bool start_pos = true);
+  void add_launcher(const std::string & icon, const std::string & text, const std::string & tooltip, const std::string & exec, bool start_pos = true);
+  void add_clock(const std::string & icon, const std::string & format, const std::string & exec, bool start_pos = true);
+  void add_battery(
+     const std::string & icon_battery_full,    
+     const std::string & icon_battery_good,    
+     const std::string & icon_battery_medium,  
+     const std::string & icon_battery_low,     
+     const std::string & icon_battery_empty,   
+     const std::string & icon_battery_charging,
+     const std::string & icon_battery_charged, 
+     bool no_text,
+     const std::string & exec, bool start_pos = true);
+  void show_tooltip();
 
 
 private:
   void draw(uint32_t serial = 0, bool update_items_only = false);
-
   void on_toplevel_listener(zwlr_foreign_toplevel_handle_v1_t handle);
-
-
 
   // global objects
   display_t display;
@@ -81,18 +95,30 @@ private:
   zwlr_layer_shell_v1_t layer_shell;
   zwlr_layer_surface_v1_t layer_shell_surface;
   zwlr_foreign_toplevel_manager_v1_t toplevel_manager;
-  std::vector<ToplevelButton*> m_toplevel_handles;
+  std::vector<std::shared_ptr<ToplevelButton> > m_toplevel_handles;
   output_t output;
   cairo_surface_t *cairo_surface;
 
+  // Tooltip objects
+  surface_t tooltip_surface;
+  xdg_surface_t tooltip_xdg_surface;
+  xdg_positioner_t tooltip_xdg_positioner;
+  xdg_popup_t tooltip_xdg_popup;
+  std::shared_ptr<shared_mem_t> tooltip_shared_mem;
+  std::array<buffer_t, 2> tooltip_buffer;
+  cairo_surface_t *tooltip_cairo_surface;
+  void draw_tooltip(int width, int height);
+
   uint32_t m_width, m_height;
-  std::vector<PanelItem *> m_panel_items;
+  std::vector<std::shared_ptr<PanelItem> > m_panel_items;
   uint32_t m_last_cursor_x, m_last_cursor_y;
   uint32_t m_toplevel_items_offset;
 
   std::shared_ptr<shared_mem_t> shared_mem;
   std::array<buffer_t, 2> buffer;
   int cur_buf;
+  
+  ToolTip tooltip;
 
   bool running;
   bool has_pointer;

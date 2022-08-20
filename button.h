@@ -23,33 +23,32 @@
 
 /*! \class Button
  *  \brief Simple button to add to panel.
- *
- *  Detailed description
  */
 class Button : public PanelItem
 {
 public:
   Button();
-  Button(char *icon_path);
-  Button(std::string text);
-  Button(char *icon_path, std::string text);
+  Button(const std::string & icon_path, const std::string & text);
   virtual ~Button();
 
-  void setText(std::string text);
-  std::string getText();
-  void setIcon(char *icon_path);
-  std::string getIcon();
+  void set_text(const std::string & text);
+  std::string get_text();
+  void set_icon(const std::string & icon_path);
+  std::string get_icon();
+  void set_tooltip(const std::string & tooltip);
+  std::string get_tooltip();
 
-  virtual void paint(cairo_t *cr);
+  virtual void paint(cairo_t *cr) override;
 
+  virtual void mouse_enter() override;
 private:
-  Icon *m_icon_ref;
-  std::string m_text;
+  std::shared_ptr<Icon> m_icon_ref;
+  std::string m_text, m_tooltip;
 
-  void draw_text(cairo_t *cr, std::string text);
+  void draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text);
 
 protected:
-  void init(char *icon_path, std::string text);
+  void init(const std::string & icon_path, const std::string & text);
 };
 
 #endif

@@ -31,9 +31,10 @@
 class ToplevelButton : public Button
 {
 public:
-  ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplevel_handle, wayland::seat_t seat, std::vector<ToplevelButton*> *toplevels);
+  ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplevel_handle, wayland::seat_t seat, std::vector<std::shared_ptr<ToplevelButton> > *toplevels);
 
-  virtual void on_mouse_clicked(int button) override;
+  virtual void mouse_clicked(int button) override;
+  virtual void mouse_enter() override;
 
   std::function<void(bool)> repaint_main_interface;
 
@@ -45,7 +46,7 @@ private:
   wayland::output_t m_output;
   wayland::array_t m_state;
   wayland::seat_t m_seat;
-  std::vector<ToplevelButton*> *m_toplevels; 
+  std::vector<std::shared_ptr<ToplevelButton> > *m_toplevels; 
   bool m_maximized, m_activated, m_minimized, m_fullscreen;
   //std::string m_icon_path;
 

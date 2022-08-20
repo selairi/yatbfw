@@ -22,18 +22,41 @@
 
 
 /*! \class Battery
- *  \brief Simple button to add to panel.
+ *  \brief Battery capacity item to add to panel.
  *
- *  Detailed description
+ *  This is a battery control item. It shows battery capacity.
  */
 class Battery : public ButtonRunCommand
 {
 public:
-  Battery();
+  Battery(
+     const std::string & icon_battery_full,   // Battery level 100% - 80%
+     const std::string & icon_battery_good,   // 80% - 60%
+     const std::string & icon_battery_medium, // 60% - 40%
+     const std::string & icon_battery_low,    // 40% - 20%
+     const std::string & icon_battery_empty,  // 20% - 0%
+     const std::string & icon_battery_charging,
+     const std::string & icon_battery_charged,
+     const bool no_text                     // Don't show battery level text
+  );
 
-  virtual void on_timeout();
+  virtual void timeout() override;
+  virtual void mouse_enter() override;
 
   std::function<void()> send_repaint;
+
+private:
+  std::string 
+    m_icon_battery_full,    // Battery level 100% - 80%
+    m_icon_battery_good,    // 80% - 60%
+    m_icon_battery_medium,  // 60% - 40%
+    m_icon_battery_low,     // 40% - 20%
+    m_icon_battery_empty,   // 20% - 0%
+    m_icon_battery_charging,
+    m_icon_battery_charged;
+  bool m_no_text;
+  int m_level; // Actual battery level
+  void update_battery_level();
 };
 
 #endif

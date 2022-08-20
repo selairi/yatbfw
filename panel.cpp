@@ -12,7 +12,7 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 #include "debug.h"
 #include <stdexcept>
 #include <iostream>
@@ -60,10 +60,13 @@ void Panel::draw(uint32_t serial, bool update_items_only)
   if(cairo_surface == nullptr) {
     cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, m_width, m_height, /*stride*/ m_width*4);
 
-    if(cairo_surface_status(cairo_surface) == CAIRO_STATUS_SUCCESS)
+    if(cairo_surface_status(cairo_surface) == CAIRO_STATUS_SUCCESS) {
       debug << "New cairo_surface\n";
-    else
-      debug_error << "cairo_surface cannot be created: " << cairo_status_to_string(cairo_surface_status(cairo_surface)) << std::endl;
+    } else {
+      debug_error << "cairo_surface cannot be created: " 
+        << cairo_status_to_string(cairo_surface_status(cairo_surface)) 
+        << std::endl;
+    }
   }
 
   Color color = Settings::get_settings()->color();
@@ -73,8 +76,7 @@ void Panel::draw(uint32_t serial, bool update_items_only)
   cairo_set_source_rgba (cr, color.red, color.green, color.blue, 0);
   cairo_paint(cr);
 
-  // Se dibuja el marco de la ventana
-
+  // Draw window frame
   if(! update_items_only) {
     cairo_set_source_rgba (cr, background_color.red, background_color.green, background_color.blue, 1.0);
     cairo_rectangle (cr, 0, 0, m_width, m_height);
@@ -83,30 +85,30 @@ void Panel::draw(uint32_t serial, bool update_items_only)
 
   // Draw panel items
   uint32_t x_start = 0, x_end = m_width;
-  for(PanelItem *item : m_panel_items) {
-    uint32_t x = item->is_start_pos() ? x_start : (x_end - item->getWidth());
-    item->setPos(x, 0);
+  for(auto item : m_panel_items) {
+    uint32_t x = item->is_start_pos() ? x_start : (x_end - item->get_width());
+    item->set_pos(x, 0);
     if(update_items_only) {
       if(item->need_repaint()) {
         item->repaint(cr);
-        surface.damage(item->getX(), item->getY(), item->getWidth(), item->getHeight());
+        surface.damage(item->get_x(), item->get_y(), item->get_width(), item->get_height());
       }
     } else {
       item->repaint(cr);
     }
     if(item->is_start_pos())
-      x_start += item->getWidth();
+      x_start += item->get_width();
     else
       x_end = x;
   }
-  
+
   // Toplevel items are drawn centered
   cairo_save(cr);
   cairo_rectangle(cr, x_start, 0, x_end - x_start, m_height);
   cairo_clip(cr);
   uint32_t x_toplevels = 0, n_toplevels = 0;
-  for(ToplevelButton *item : m_toplevel_handles) {
-    x_toplevels += item->getWidth();
+  for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+    x_toplevels += item->get_width();
     n_toplevels++;
   }
   // Change toplevel items offset if there is not enoght space 
@@ -115,17 +117,17 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     x_toplevels += m_toplevel_items_offset;
   x_toplevels = (x_start + x_end - x_toplevels) / 2;
 
-  for(ToplevelButton *item : m_toplevel_handles) {
-    item->setPos(x_toplevels, 0);
+  for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+    item->set_pos(x_toplevels, 0);
     if(update_items_only) {
       if(item->need_repaint()) {
         item->repaint(cr);
-        surface.damage(item->getX(), item->getY(), item->getWidth(), item->getHeight());
+        surface.damage(item->get_x(), item->get_y(), item->get_width(), item->get_height());
       }
     } else {
       item->repaint(cr);
     }
-    x_toplevels += item->getWidth(); 
+    x_toplevels += item->get_width(); 
   }
   cairo_restore(cr);
 
@@ -149,6 +151,8 @@ Panel::Panel()
   cairo_surface = nullptr;
   m_repaint_full = true;
   m_repaint_partial = false;
+  tooltip_cairo_surface = nullptr;
+  tooltip_shared_mem = nullptr;
 }
 
 void Panel::init()
@@ -162,11 +166,11 @@ void Panel::init()
 
     if(interface == compositor_t::interface_name) {
       registry.bind(name, compositor, version);
-      std::cout << "Binding interface " << compositor_t::interface_name << std::endl;
+      debug << "Binding interface " << compositor_t::interface_name << std::endl;
     } /*else if(interface == shell_t::interface_name) {
-      std::cout << "registrando " << shell_t::interface_name << std::endl;
-      registry.bind(name, shell, version);
-    }*/ 
+        std::cout << "registrando " << shell_t::interface_name << std::endl;
+        registry.bind(name, shell, version);
+        }*/ 
     else if(interface == xdg_wm_base_t::interface_name) {
       debug << "Binding interface " << xdg_wm_base_t::interface_name << std::endl;
       registry.bind(name, xdg_wm_base, version);
@@ -259,14 +263,11 @@ void Panel::init()
     xdg_toplevel.set_title("Window");
     xdg_toplevel.on_close() = [&] () { running = false; };
   }
-  // else
-  // {
-  //   shell_surface = shell.get_shell_surface(surface);
-  //   shell_surface.on_ping() = [&] (uint32_t serial) { shell_surface.pong(serial); };
-  //   shell_surface.set_title("Window");
-  //   shell_surface.set_toplevel();
-  //   printf("shell_surface\n");
-  // }
+
+  if(xdg_wm_base) {
+    xdg_wm_base.on_ping() = [&] (uint32_t serial) { xdg_wm_base.pong(serial); };
+  }
+
   surface.commit();
 
   debug << "Second roundtrip has been started" << std::endl;
@@ -314,9 +315,9 @@ void Panel::init()
     debug << "Cursor " << x << y << std::endl;
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    for(PanelItem *item : m_panel_items)
+    for(auto item : m_panel_items)
       item->on_mouse_enter(x, y);
-    for(ToplevelButton *item : m_toplevel_handles)
+    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
       item->on_mouse_enter(x, y);
 
     m_repaint_partial = true;
@@ -326,12 +327,12 @@ void Panel::init()
   pointer.on_leave() = [&] (uint32_t serial, const surface_t& /*unused*/)
   {
     debug << "on_leave\n";
-    for(PanelItem *item : m_panel_items)
+    for(auto item : m_panel_items)
       item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
-    for(ToplevelButton *item : m_toplevel_handles)
+    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
       item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
     m_repaint_partial = true;
-    //draw(serial, true);
+    ToolTip::hide();
   };
 
   pointer.on_motion() = [&] (uint32_t time, double x, double y)
@@ -339,11 +340,11 @@ void Panel::init()
     //printf("Cursor %f,%f\n", x, y);
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    for(PanelItem *item : m_panel_items) {
+    for(auto item : m_panel_items) {
       item->on_mouse_enter(x, y);
       item->on_mouse_leave(x, y, false);
     }
-    for(ToplevelButton *item : m_toplevel_handles) {
+    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
       item->on_mouse_enter(x, y);
       item->on_mouse_leave(x, y, false);
     }
@@ -356,16 +357,19 @@ void Panel::init()
     debug << "Button action  " << button << std::endl;
     if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
       debug << "Button pressed\n";
-      for(PanelItem *item : m_panel_items)
+      //showToolTip();
+
+      for(auto item : m_panel_items)
         item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
-      for(ToplevelButton *item : m_toplevel_handles)
-        ((PanelItem*)item)->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
+      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+        //((PanelItem*)item)->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
+        item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
       m_repaint_partial = true;
       //draw(serial, true);
     } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
-      for(PanelItem *item : m_panel_items)
+      for(auto item : m_panel_items)
         item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
-      for(ToplevelButton *item : m_toplevel_handles)
+      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
         item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
       m_repaint_partial = true;
       //draw(serial, true);
@@ -396,14 +400,16 @@ void Panel::init()
   draw();
   draw();
   debug << "Drawn" << std::endl;
+
+  tooltip.init(&compositor, &display, &xdg_wm_base, &shm, &layer_shell_surface, &m_width, &m_height);
 }
 
 
 void Panel::on_toplevel_listener(zwlr_foreign_toplevel_handle_v1_t toplevel_handle)
 {
-  ToplevelButton *toplevel = new ToplevelButton(toplevel_handle, seat, &m_toplevel_handles);
-  toplevel->setWidth(Settings::get_settings()->panel_size());
-  toplevel->setHeight(Settings::get_settings()->panel_size());
+  auto toplevel = std::make_shared<ToplevelButton>(toplevel_handle, seat, &m_toplevel_handles);
+  toplevel->set_width(Settings::get_settings()->panel_size());
+  toplevel->set_height(Settings::get_settings()->panel_size());
   toplevel->repaint_main_interface = [&](bool update_items_only) {
     if(update_items_only)
       m_repaint_partial = true;
@@ -418,43 +424,62 @@ void Panel::on_toplevel_listener(zwlr_foreign_toplevel_handle_v1_t toplevel_hand
 }
 
 
-void Panel::addLauncher(std::string icon, std::string text, std::string exec, bool start_pos)
+void Panel::add_launcher(const std::string & icon, const std::string & text, const std::string & tooltip, const std::string & exec, bool start_pos)
 {
-  ButtonRunCommand *n = new ButtonRunCommand((char*)(icon.c_str()), text);
-  n->setCommand(exec);
-  n->setFD(display.get_fd());
-  n->setWidth(Settings::get_settings()->panel_size() - 1);
-  n->setHeight(Settings::get_settings()->panel_size() - 1);
+  auto n = std::make_shared<ButtonRunCommand>(icon, text, tooltip);
+  n->set_command(exec);
+  n->set_fd(display.get_fd());
+  n->set_width(Settings::get_settings()->panel_size() - 1);
+  n->set_height(Settings::get_settings()->panel_size() - 1);
   n->set_start_pos(start_pos);
   m_panel_items.push_back(n);
 }
 
-void Panel::addClock(std::string icon, std::string format, std::string exec, bool start_pos)
+void Panel::add_clock(const std::string & icon, const std::string & format, const std::string & exec, bool start_pos)
 {
-  Clock *c = new Clock((char*)(icon.c_str()), format);
-  c->setWidth(Settings::get_settings()->panel_size() - 1);
-  c->setHeight(Settings::get_settings()->panel_size() - 1);
-  c->setCommand(exec);
+  auto c = std::make_shared<Clock>(icon, format);
+  c->set_width(Settings::get_settings()->panel_size() - 1);
+  c->set_height(Settings::get_settings()->panel_size() - 1);
+  c->set_command(exec);
   c->send_repaint = [&]() {
     //draw(-1, true);
     m_repaint_partial = true;
   };
-  c->setFD(display.get_fd());
+  c->set_fd(display.get_fd());
   c->set_start_pos(start_pos);
   m_panel_items.push_back(c);
 }
 
-void Panel::addBattery(std::string exec, bool start_pos)
+void Panel::add_battery(
+   const std::string & icon_battery_full,    
+   const std::string & icon_battery_good,    
+   const std::string & icon_battery_medium,  
+   const std::string & icon_battery_low,     
+   const std::string & icon_battery_empty,   
+   const std::string & icon_battery_charging,
+   const std::string & icon_battery_charged,
+   bool no_text,
+   const std::string & exec, bool start_pos
+)
 {
-  Battery *c = new Battery();
-  c->setWidth(Settings::get_settings()->panel_size() - 1);
-  c->setHeight(Settings::get_settings()->panel_size() - 1);
-  c->setCommand(exec);
+  auto c = std::make_shared<Battery>(
+      icon_battery_full,    
+      icon_battery_good,    
+      icon_battery_medium,  
+      icon_battery_low,     
+      icon_battery_empty,   
+      icon_battery_charging,
+      icon_battery_charged,
+      no_text
+  );
+  c->set_width(Settings::get_settings()->panel_size() - 1);
+  c->set_height(Settings::get_settings()->panel_size() - 1);
+  c->set_command(exec);
   c->send_repaint = [&]() {
     //draw(-1, true);
     m_repaint_partial = true;
   };
-  c->setFD(display.get_fd());
+  c->set_fd(display.get_fd());
   c->set_start_pos(start_pos);
   m_panel_items.push_back(c);
 }
@@ -485,7 +510,7 @@ void Panel::run()
     // Update timeout and run timeout events
     now_in_msecs = get_time_milliseconds();
     timeout_msecs = -1;
-    for(PanelItem *item : m_panel_items) {
+    for(auto item : m_panel_items) {
       long item_timeout = item->next_time_timeout(now_in_msecs);
       if(item_timeout >= 0) {
         if(now_in_msecs >= item_timeout) {
@@ -516,7 +541,7 @@ void Panel::run()
       }
     } else if(ret == 0) {
       debug << "Timeout\n";
-      //for(PanelItem *item : m_panel_items) {
+      //for(auto item : m_panel_items) {
       //  item->on_timeout();
       //}
     } else {
@@ -526,3 +551,91 @@ void Panel::run()
 }
 
 
+void Panel::draw_tooltip(int width, int height)
+{
+  if(!tooltip_surface || !tooltip_shared_mem)
+    return;
+
+  if(tooltip_cairo_surface == nullptr) {
+    tooltip_cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(tooltip_shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, width, height, /*stride*/ width*4);
+
+    if(cairo_surface_status(tooltip_cairo_surface) == CAIRO_STATUS_SUCCESS) {
+      debug << "New cairo_surface\n";
+    } else {
+      debug_error << "cairo_surface cannot be created: " << cairo_status_to_string(cairo_surface_status(tooltip_cairo_surface)) << std::endl;
+    }
+  }
+
+  Color color = Settings::get_settings()->color();
+  Color background_color = Settings::get_settings()->background_color();
+
+  cairo_t *cr = cairo_create(tooltip_cairo_surface);
+  cairo_set_source_rgba (cr, color.red, color.green, color.blue, 0);
+  cairo_paint(cr);
+
+  cairo_set_source_rgba (cr, color.red, color.green, color.blue, 1.0);
+  cairo_rectangle (cr, 0, 0, width, height);
+  cairo_fill(cr);
+  cairo_paint(cr);
+
+  cairo_destroy(cr);
+
+  tooltip_surface.attach(tooltip_buffer.at(0), 0, 0);
+  tooltip_surface.damage(0, 0, width, height);
+
+  tooltip_surface.commit();
+  debug << "draw finished\n";
+}
+
+void Panel::show_tooltip()
+{
+  int width = 50, height = 32;
+  if(tooltip_cairo_surface) {
+    tooltip_xdg_popup.proxy_release();
+    tooltip_xdg_positioner.proxy_release();
+    std::cout << "Eliminando buffer\n";
+    tooltip_buffer.at(0).proxy_release();
+    tooltip_buffer.at(1).proxy_release();
+    tooltip_xdg_surface.proxy_release();
+    tooltip_surface.proxy_release();
+    tooltip_shared_mem = nullptr;
+
+    debug_error << "Show tooltip" << std::endl << std::endl;;
+    //draw_tooltip(width, height);
+    return;
+  }
+
+  tooltip_surface = compositor.create_surface();
+  tooltip_xdg_surface = xdg_wm_base.get_xdg_surface(tooltip_surface);
+  tooltip_xdg_surface.on_configure() = [&] (uint32_t serial) { 
+    debug_error << "Tooltip" << std::endl;
+    int width = 50, height = 32;
+    if(!tooltip_shared_mem) {
+      tooltip_shared_mem = std::make_shared<shared_mem_t>(2*width*height*4);
+      auto pool = shm.create_pool(tooltip_shared_mem->get_fd(), 2*width*height*4);
+      for(unsigned int c = 0; c < 2; c++)
+        tooltip_buffer.at(c) = pool.create_buffer(c*width*height*4, width, height, width*4, shm_format::argb8888);
+    }
+    tooltip_xdg_surface.set_window_geometry(1920*0, 1260*0, width, height);
+    tooltip_xdg_surface.ack_configure(serial); 
+  };
+  tooltip_xdg_positioner = xdg_wm_base.create_positioner();
+  tooltip_xdg_positioner.set_size(width, height);
+  tooltip_xdg_positioner.set_anchor_rect(1920/2*0, 1260*0, m_width, m_height);
+  tooltip_xdg_positioner.set_anchor(xdg_positioner_anchor::top);
+  tooltip_xdg_popup = tooltip_xdg_surface.get_popup(nullptr, tooltip_xdg_positioner);
+  tooltip_xdg_popup.on_configure() = [&] (int32_t x, int32_t y, int32_t w, int32_t h) {
+    debug_error << "popup: x:" << x << " y:" << y << " w:" << w << " h:" << h << std::endl;
+    //tooltip_xdg_surface.set_window_geometry(x, y, w, h);
+    draw_tooltip(w, h);
+  };
+  tooltip_xdg_popup.on_popup_done() = [&] () {
+    std::cout << "Popup done\n";
+  };
+  layer_shell_surface.get_popup(tooltip_xdg_popup);
+
+  tooltip_surface.commit();
+  display.roundtrip();
+  std::cout << "Draw tooltip\n";
+  draw_tooltip(width, height);
+}

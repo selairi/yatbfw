@@ -22,17 +22,18 @@
 
 
 /*! \class Clock
- *  \brief Simple button to add to panel.
- *
- *  Detailed description
+ *  \brief Simple clock item to add to panel.
+ *  
+ *  As ButtonRunCommand child a command can be run when
+ *  item is clicked.
  */
 class Clock : public ButtonRunCommand
 {
 public:
-  Clock(std::string timeformat);
-  Clock(char *icon, std::string timeformat);
+  Clock(const std::string & icon, const std::string & timeformat);
 
-  virtual void on_timeout();
+  virtual void timeout() override;
+  virtual void mouse_enter() override;
 
   std::function<void()> send_repaint;
 

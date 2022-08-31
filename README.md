@@ -6,7 +6,7 @@ This is a simple taskbar that can be used in wayland compositors that implements
 
 # Building
 
-To be compiled requires:
+Compiling requires:
 
 - [cmake](https://github.com/Kitware/CMake)
 - C++17 compiler
@@ -24,7 +24,7 @@ make
 sudo make install
 ```
 
-Then edit "~.config/yatbfw.json" to configure your taskbar.
+Then edit "~/.config/yatbfw.json" to configure your taskbar.
 
 # Settings
 

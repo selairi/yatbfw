@@ -136,7 +136,12 @@ void ToolTip::create_wayland_surface(int offset)
     m_xdg_surface.ack_configure(serial); 
   };
   m_xdg_positioner = m_xdg_wm_base->create_positioner();
-  m_xdg_positioner.set_size(m_width, m_height);
+  {
+    debug << "m_xdg_positioner set_size " << m_width << ", " << m_height << std::endl;
+    int width = m_width <= 0 ? 32 : m_width;
+    int height = m_height <= 0 ? 32 : m_height;
+    m_xdg_positioner.set_size(width, height);
+  }
   switch(Settings::get_settings()->panel_position()) {
     case PanelPosition::BOTTOM:
       m_xdg_positioner.set_anchor_rect(0, 0, offset , *m_panel_height);

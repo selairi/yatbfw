@@ -50,13 +50,13 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     if(icon.empty()) {
       icon = suggested_icon_for_id(id);
     }
-    debug << "\ticon " << id << " " << icon << std::endl;
+    debug << "\ticon for id: " << id << " icon: >" << icon << "<" << std::endl;
     if(icon.empty())
       icon = suggested_icon_for_id(std::string("dialog-question"));
     if(icon.empty())
-      init(nullptr, id);
+      init(icon, id);
     else
-      init((char*)icon.c_str(), std::string());
+      init(icon, std::string());
     repaint_main_interface(true);
   };
   m_toplevel_handle.on_output_enter() =[&](wayland::output_t output) {
@@ -169,9 +169,9 @@ static std::string suggested_icon_for_id(std::string id)
 {
   std::string icon;
   // Sometimes id has id.xx.xx format, the first element must be extracted
-  std::string::size_type pos = id.find('.');
-  if(pos != std::string::npos)
-    id = id.substr(0, pos);
+  //std::string::size_type pos = id.find('.');
+  //if(pos != std::string::npos)
+  //  id = id.substr(0, pos);
   
   std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/share/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
 

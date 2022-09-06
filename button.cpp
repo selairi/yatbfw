@@ -42,11 +42,7 @@ Button::~Button()
 void Button::init(const std::string & icon_path, const std::string & text)
 {
   m_text = text;
-  if(! icon_path.empty()) {
-    m_icon_ref = Icon::get_icon(icon_path);
-  } else {
-    m_icon_ref = nullptr;
-  }
+  m_icon_ref = Icon::get_icon(icon_path);
 }
 
 void Button::set_text(const std::string & text)

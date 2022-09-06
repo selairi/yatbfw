@@ -26,7 +26,7 @@
 
 std::unordered_map<std::string, std::weak_ptr<Icon> > Icon::icons;
 
-/** Gets size from icon path. Icons paths are "8x8/", "32x32/", "scalable".
+/** Gets size from icon path. Icons paths are "8x8/", "32x32/", "scalable",...
  * This function tries to get size from path. If path is "8x8", it will return 8.
  * If path is "scalable", it will return -1.
  */
@@ -37,8 +37,7 @@ static int get_size_from_path(const std::string & path)
     std::string n = path.substr(0, pos);
     try {
       return std::stoi(n);
-    } catch(const std::invalid_argument& e) {
-    }
+    } catch(const std::invalid_argument& e) { }
   }
   return -1;
 }
@@ -137,7 +136,7 @@ static std::string get_icon_for_theme(const std::string & path, const std::strin
   for(std::string category : index_theme.paths) {
     for(std::string format : formats) {
       std::string icon = path + "/" + theme + "/" + category + "/" + icon_name + format;
-      //debug << "*** " << icon << std::endl;
+      // debug << "*** " << icon << std::endl;
       std::filesystem::directory_entry icon_direntry(icon);
       if(icon_direntry.exists()) {
         return icon;
@@ -145,11 +144,13 @@ static std::string get_icon_for_theme(const std::string & path, const std::strin
     }
   }
 
+  debug << "Icon " << icon_name << " not found. Checking parent theme." << std::endl;
   for(std::string theme : index_theme.parent_themes) {
     std::string icon = get_icon_for_theme(path, theme, icon_name, panel_size);
     if(!icon.empty())
       return icon;
   }
+  debug << "Icon " << icon_name << " not found." << std::endl;
 
   // Icon not found
   return std::string();
@@ -165,10 +166,10 @@ std::string Icon::suggested_icon_for_id(std::string id)
   }
 
   // Change id of icon to lower case (icons are saved as lower case files)
-  for(char &ch : id) {ch = std::tolower(ch);}
+  //for(char &ch : id) {ch = std::tolower(ch);}
   std::string icon;
   Settings *settings = Settings::get_settings();
-  debug << "suggested_icon_for_id " << id << " " << id + std::string("\\.png$") << std::endl;
+  debug << "suggested_icon_for_id " << id << " " << id + std::string("\\.(png|svg)$") << std::endl;
   
   // Paths of icon themes
   std::vector<std::string> icon_theme_paths;
@@ -268,7 +269,7 @@ Icon::~Icon()
 
 void Icon::paint(cairo_t *cr, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
-  debug << " Start painting Icon " << m_path << std::endl;
+  debug << " Start painting Icon " << m_path << " Path: " << m_icon_path << std::endl;
   // Draws icon
   if(m_icon != nullptr) {
     cairo_save(cr);

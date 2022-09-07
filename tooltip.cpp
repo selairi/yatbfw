@@ -101,7 +101,8 @@ void ToolTip::hide_tooltip()
 
 void ToolTip::show_tooltip(const std::string & text, int offset)
 {
-  if(offset < 1) offset = *m_panel_width;
+  debug << "Tooltip offset: " << offset << std::endl;
+  if(offset < 1) offset = 1; // xdg_positioner fails if offset is 0
 
   // Close previous tooltip
   hide_tooltip();
@@ -115,6 +116,7 @@ void ToolTip::show_tooltip(const std::string & text, int offset)
 
   // Close tool build for compute text size
   hide_tooltip();
+  debug << "Tooltip m_width: " << m_width << std::endl;
 
   // Build a new window with the right size
   create_wayland_surface(offset);
@@ -142,6 +144,7 @@ void ToolTip::create_wayland_surface(int offset)
     int height = m_height <= 0 ? 32 : m_height;
     m_xdg_positioner.set_size(width, height);
   }
+  debug << "m_xdg_positioner offset " << offset << std::endl;
   switch(Settings::get_settings()->panel_position()) {
     case PanelPosition::BOTTOM:
       m_xdg_positioner.set_anchor_rect(0, 0, offset , *m_panel_height);

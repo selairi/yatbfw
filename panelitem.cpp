@@ -207,7 +207,7 @@ void PanelItem::show_tooltip(std::string text)
   switch(Settings::get_settings()->panel_position()) {
     case PanelPosition::BOTTOM:
     case PanelPosition::TOP:
-      ToolTip::show(text, m_x);
+      ToolTip::show(text, m_x + m_width/2);
       break;
   }
 }

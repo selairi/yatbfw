@@ -49,6 +49,8 @@ void ButtonRunCommand::mouse_clicked(int button)
       debug_error << "File descriptor has not been set. Use set_fd to set it." << std::endl;
       return;
     }
+    // Ignore child signals (no zombie process)
+    signal(SIGCHLD, SIG_IGN);
     if(fork() == 0) {
       close(m_fd);
       system((m_command + " &> /dev/null &").c_str());

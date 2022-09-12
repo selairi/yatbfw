@@ -59,6 +59,7 @@ public:
   void show_tooltip(std::string text);
 
   virtual void paint(cairo_t *cr);
+  virtual void update_size(cairo_t *cr);
 
   virtual void mouse_enter(); 
   virtual void mouse_leave();

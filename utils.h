@@ -17,6 +17,7 @@
 #define __UTILS_H__
 
 #include <string>
+#include <vector>
 
 /*! \class Utils
  *  \brief a simple set of utils to exec commands.
@@ -29,5 +30,8 @@ class Utils
     static std::string read_command(std::string command);
     static std::string read_command(const char *command);
 };
+
+// Get lines of text
+std::vector<std::string> get_lines(std::string text);
 
 #endif

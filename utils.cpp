@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "utils.h"
 #include <stdio.h>
+#include <vector>
 
 std::string Utils::read_command(std::string command)
 {
@@ -34,3 +35,24 @@ std::string Utils::read_command(const char *command)
 {
   return read_command(std::string(command)); 
 }
+
+// Get lines of text
+std::vector<std::string> get_lines(std::string text)
+{
+  std::vector<std::string> lines;
+  size_t start = 0;
+  size_t end = text.find("\n");
+  if(end == std::string::npos)
+    lines.push_back(text);
+  else { 
+    while (end != std::string::npos) {
+      lines.push_back(text.substr(start, end - start));
+      start = end + 1;
+      end = text.find("\n", start);
+    }
+    lines.push_back(text.substr(start));
+  }
+
+  return lines;
+}
+

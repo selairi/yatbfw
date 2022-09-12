@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "tooltip.h"
 #include "settings.h"
+#include "utils.h"
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -184,26 +185,6 @@ void ToolTip::create_wayland_surface(int offset)
       debug_error << "cairo_surface cannot be created: " << cairo_status_to_string(cairo_surface_status(m_cairo_surface)) << std::endl;
     }
   }
-}
-
-// Get lines of text
-static std::vector<std::string> get_lines(std::string text)
-{
-  std::vector<std::string> lines;
-  size_t start = 0;
-  size_t end = text.find("\n");
-  if(end == std::string::npos)
-    lines.push_back(text);
-  else { 
-    while (end != std::string::npos) {
-      lines.push_back(text.substr(start, end - start));
-      start = end + 1;
-      end = text.find("\n", start);
-    }
-    lines.push_back(text.substr(start));
-  }
-
-  return lines;
 }
 
 

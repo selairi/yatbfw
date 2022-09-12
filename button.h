@@ -39,6 +39,7 @@ public:
   std::string get_tooltip();
 
   virtual void paint(cairo_t *cr) override;
+  virtual void update_size(cairo_t *cr) override;
 
   virtual void mouse_enter() override;
 private:

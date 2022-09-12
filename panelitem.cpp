@@ -121,6 +121,7 @@ void PanelItem::repaint(cairo_t *cr)
   cairo_rectangle(cr, m_x, m_y, m_width, m_height);
   cairo_fill(cr);
 
+  int x = m_x, y = m_y, width = m_width, height = m_height;
   paint(cr);
 
   if(m_selected) {
@@ -129,7 +130,8 @@ void PanelItem::repaint(cairo_t *cr)
     cairo_fill(cr);
   }
 
-  m_need_repaint = false;
+  // Check if size of item has changed
+  m_need_repaint = ! (x == m_x && y == m_y && width == m_width && height == m_height);
 }
 
 void PanelItem::on_mouse_leave(int x, int y, bool leave)
@@ -218,4 +220,5 @@ void PanelItem::mouse_leave() { debug << "on_mouse_leave\n"; }
 void PanelItem::mouse_clicked(int button) { debug << "on_mouse_clicked\n"; }
 void PanelItem::mouse_released() { debug << "on_mouse_released\n"; }
 void PanelItem::paint(cairo_t *cr) { debug << "paint\n"; }
+void PanelItem::update_size(cairo_t *cr) { debug << "update_size\n"; } 
 void PanelItem::timeout() { debug << "on_timeout\n"; }

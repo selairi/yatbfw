@@ -15,6 +15,7 @@
   
 #include "debug.h"
 #include "button.h"
+#include "utils.h"
 #include <glib.h>
 #include <iostream>
 #include <regex>
@@ -74,32 +75,15 @@ std::string Button::get_icon()
 
 void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text)
 {
+  int width, height = 0;
   int text_width = m_width - x_offset;
   int text_height = m_height - y_offset;
-  std::vector<std::string> lines;
+  std::vector<std::string> lines = get_lines(text);
 
-  // Get lines of text
-  size_t start = 0;
-  size_t end = text.find("\n");
-  if(end == std::string::npos)
-    lines.push_back(text);
-  else { 
-    while (end != std::string::npos) {
-      lines.push_back(text.substr(start, end - start));
-      start = end + 1;
-      end = text.find("\n", start);
-    }
-    lines.push_back(text.substr(start));
-  }
-
-  cairo_save(cr);
-  cairo_rectangle(cr, m_x + x_offset, m_y + y_offset, text_width, text_height);
-  cairo_clip(cr);
   Color color = Settings::get_settings()->color();
   cairo_set_source_rgba (cr, color.red, color.green, color.blue, 1.0);
   cairo_select_font_face(cr, Settings::get_settings()->font().c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
   cairo_set_font_size(cr, Settings::get_settings()->font_size());
-  int width, height = 0;
   for(std::string line : lines) {
     cairo_text_extents_t extents;
     cairo_text_extents(cr, line.c_str(), &extents);
@@ -107,6 +91,11 @@ void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text
       text_width = extents.width + 6;
     height += extents.height;
   }
+
+  cairo_save(cr);
+  cairo_rectangle(cr, m_x + x_offset, m_y + y_offset, text_width, text_height);
+  cairo_clip(cr);
+
   int sep = 0;
   if(text_height > height)
     sep = (text_height - height) / (lines.size() + 1);
@@ -121,10 +110,14 @@ void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text
   }
   cairo_restore(cr);
 
-  if((text_height + y_offset) > m_height)
-    m_height = text_height + y_offset;
-  if((text_width + x_offset) > m_width)
-    m_width = text_width + x_offset; 
+  //if((text_height + y_offset) != m_height) {
+  //  m_height = text_height + y_offset;
+  //  m_need_repaint = true;
+  //}
+  //if((text_width + x_offset) != m_width) {
+  //  m_width = text_width + x_offset;
+  //  m_need_repaint = true;
+  //}
 }
 
 void Button::paint(cairo_t *cr)
@@ -139,6 +132,39 @@ void Button::paint(cairo_t *cr)
   if(! m_text.empty())
     draw_text(cr, offset, 0, m_text);
 }
+
+void Button::update_size(cairo_t *cr)
+{
+  int offset = 0;
+  // Panel has set size of items, width and height, with the default height of panel 
+  if(m_icon_ref != nullptr)
+    offset = (m_width > m_height ? m_height : m_width);
+
+  if(! m_text.empty()) {
+    int text_width = 0;
+    //int text_height = 0;
+
+    std::vector<std::string> lines = get_lines(m_text);
+
+    Color color = Settings::get_settings()->color();
+    cairo_set_source_rgba (cr, color.red, color.green, color.blue, 1.0);
+    cairo_select_font_face(cr, Settings::get_settings()->font().c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, Settings::get_settings()->font_size());
+    for(std::string line : lines) {
+      cairo_text_extents_t extents;
+      cairo_text_extents(cr, line.c_str(), &extents);
+      if(text_width < extents.width)
+        text_width = extents.width + 6;
+      //text_height += extents.height;
+    }
+    //int sep = (offset - text_height) / (lines.size() + 1);
+    //text_height += sep * (lines.size() + 1); 
+
+    // FIXME: This only works for horizontal panel
+    m_width = text_width + offset;
+  }
+}
+
 
 void Button::set_tooltip(const std::string & tooltip)
 {

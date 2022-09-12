@@ -87,13 +87,25 @@ void Panel::draw(uint32_t serial, bool update_items_only)
   uint32_t x_start = 0, x_end = m_width;
   for(auto item : m_panel_items) {
     uint32_t x = item->is_start_pos() ? x_start : (x_end - item->get_width());
-    item->set_pos(x, 0);
     if(update_items_only) {
       if(item->need_repaint()) {
+        uint32_t width = item->get_width(), height = item->get_height();
+        item->update_size(cr);
+        if(width != item->get_width() || height != item->get_height()) {
+          // Total repaint is needed
+          debug << "Total repaint is needed" << std::endl;
+          cairo_destroy(cr);
+          draw(serial, false);
+          return;
+        }
+        item->set_pos(x, 0);
         item->repaint(cr);
         surface.damage(item->get_x(), item->get_y(), item->get_width(), item->get_height());
       }
     } else {
+      item->update_size(cr);
+      x = item->is_start_pos() ? x_start : (x_end - item->get_width());
+      item->set_pos(x, 0);
       item->repaint(cr);
     }
     if(item->is_start_pos())

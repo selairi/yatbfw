@@ -21,8 +21,11 @@
 #include <regex>
 #include <linux/input-event-codes.h>
 #include "settings.h"
+#include <unordered_map>
 
 static std::string suggested_icon_for_id(std::string id);
+static std::unordered_map<std::string, std::string> init_icon_exec_map();
+static std::unordered_map<std::string, std::string> icon_exec_map = init_icon_exec_map();
 
 
 ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplevel_handle, wayland::seat_t seat, std::vector<std::shared_ptr<ToplevelButton> > *toplevels) : Button()
@@ -52,6 +55,13 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     }
     debug << "\ticon for id: " << id << " icon: >" << icon << "<" << std::endl;
     if(icon.empty()) {
+      // Change id of icon to lower case (icons are saved as lower case files)
+      std::string mod_id = id;
+      for(char &ch : mod_id) {ch = std::tolower(ch);}
+      icon = suggested_icon_for_id(mod_id);
+      debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
+    }
+    if(icon.empty()) {
       // Sometimes id has id.xx.xx format, the first element must be extracted
       std::string::size_type pos = id.find('.');
       std::string mod_id;
@@ -59,6 +69,13 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
         mod_id = id.substr(0, pos);
       icon = suggested_icon_for_id(mod_id);
       debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
+      if(icon.empty()) {
+        // Sometimes id is in D-BUS format: xx.xx.id, where id is in PascalCase
+        // Change id of icon to lower case (icons are saved as lower case files)
+        for(char &ch : mod_id) {ch = std::tolower(ch);}
+        icon = suggested_icon_for_id(mod_id);
+        debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
+      }
     }
     if(icon.empty()) {
       // Sometimes id has xx.xx.id format, the last element must be extracted
@@ -74,11 +91,16 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
         for(char &ch : mod_id) {ch = std::tolower(ch);}
         icon = suggested_icon_for_id(mod_id);
         debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
-
       }
     }
-    if(icon.empty())
+    if(icon.empty() && icon_exec_map.find(id) != icon_exec_map.end()) {
+      icon = icon_exec_map[id];
+      debug << "\ticon for id: " << id << " icon: >" << icon << "<" << std::endl;
+    }
+    if(icon.empty()) {
       icon = suggested_icon_for_id(std::string("dialog-question"));
+      debug << "not icon found for id " << id << std::endl;
+    }
     if(icon.empty())
       init(icon, id);
     else
@@ -198,7 +220,7 @@ static std::string suggested_icon_for_id(std::string id)
   if(id.empty())
     return icon;
   
-  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/share/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
+  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
 
   for(std::string path : paths) {
     icon = get_icon_from_desktop_file(path, id);
@@ -220,5 +242,34 @@ static std::string suggested_icon_for_id(std::string id)
 void ToplevelButton::mouse_enter()
 {
   show_tooltip(m_title);
+}
+
+// Builds a map with executable and related icon
+std::unordered_map<std::string, std::string> init_icon_exec_map()
+{
+  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
+  std::unordered_map<std::string, std::string> map; 
+  for(std::string path : paths) {
+    for(std::filesystem::directory_entry entry : std::filesystem::directory_iterator(path)) {
+      if( ".desktop" == entry.path().extension()) {
+        // Read content
+        std::ifstream in(entry.path().c_str());
+        std::regex re_icon("^Icon=(.*)");
+        std::regex re_exec("^Exec=([^ ]*).*");
+        std::string icon, exec;
+        for( std::string line; std::getline(in, line); ) {
+          std::smatch m;
+          if(std::regex_match(line, m, re_icon)) {
+            icon = m[1];
+          } else if(std::regex_match(line, m, re_exec)) {
+            exec = std::filesystem::path(m[1]).filename();
+          }
+        }
+        map[exec] = icon;
+      }
+      entry.refresh();
+    }
+  }
+  return map;
 }
 

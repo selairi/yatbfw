@@ -54,6 +54,10 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
       icon = suggested_icon_for_id(id);
     }
     debug << "\ticon for id: " << id << " icon: >" << icon << "<" << std::endl;
+    if(icon.empty() && id.find(" ") != id.npos) {
+      // Id sometimes has spaces. Change id by fisrt word.
+      id = id.substr(0, id.find(" "));
+    }
     if(icon.empty()) {
       // Change id of icon to lower case (icons are saved as lower case files)
       std::string mod_id = id;

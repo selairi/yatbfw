@@ -24,6 +24,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
+#include <string.h>
+#include <stdexcept>
+#include <sys/mman.h>
+#include <string>
+#include <sstream>
+#include "debug.h"
+
 // helper to create a std::function out of a member function and an object
 template <typename R, typename T, typename... Args>
 std::function<R(Args...)> bind_mem_fn(R(T::* func)(Args...), T *t)
@@ -63,29 +71,36 @@ class shared_mem_t
 
       // open shared memory file
       fd = memfd_create(name.c_str(), 0);
-      if(fd < 0)
+      if(fd < 0) {
+        debug << "shm_open failed." << std::endl;
         throw std::runtime_error("shm_open failed.");
+      }
 
       // set size
-      if(ftruncate(fd, size) < 0)
+      if(ftruncate(fd, size) < 0) {
+        debug << "ftruncate failed." << std::endl;
         throw std::runtime_error("ftruncate failed.");
+      }
 
       // map memory
       mem = mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-      if(mem == MAP_FAILED) // NOLINT
-        throw std::runtime_error("mmap failed.");
+      if(mem == MAP_FAILED) { // NOLINT
+        debug << "mmap failed." << strerror(errno) << std::endl; 
+        throw std::runtime_error(std::string("[shared_mem::shared_mem] mmap failed: ") + std::string(strerror(errno)));
+      }
     }
 
     ~shared_mem_t() noexcept
     {
-      if(fd)
-      {
+      if(fd) {
+        debug << "munmap start" << std::endl;
         if(munmap(mem, len) < 0)
-          std::cerr << "munmap failed." << std::endl;
+          debug << "munmap failed: " << strerror(errno) << std::endl;
         if(close(fd) < 0)
-          std::cerr << "close failed." << std::endl;
+          debug << "close failed: " << strerror(errno) << std::endl;
         //if(shm_unlink(name.c_str()) < 0)
         //  std::cerr << "shm_unlink failed: (file: " << name << ") " << strerror(errno) << std::endl;
+        debug << "munmap end" << std::endl;
       }
     }
 

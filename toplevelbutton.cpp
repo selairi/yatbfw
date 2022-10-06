@@ -224,7 +224,7 @@ static std::string suggested_icon_for_id(std::string id)
   if(id.empty())
     return icon;
   
-  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
+  std::vector<std::string> paths = { Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
 
   for(std::string path : paths) {
     icon = get_icon_from_desktop_file(path, id);
@@ -251,27 +251,29 @@ void ToplevelButton::mouse_enter()
 // Builds a map with executable and related icon
 std::unordered_map<std::string, std::string> init_icon_exec_map()
 {
-  std::vector<std::string> paths = {Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
+  std::vector<std::string> paths = { Settings::get_env("XDG_DATA_HOME") + "/applications/", "/usr/local/share/applications/", "/usr/share/applications/" };
   std::unordered_map<std::string, std::string> map; 
   for(std::string path : paths) {
-    for(std::filesystem::directory_entry entry : std::filesystem::directory_iterator(path)) {
-      if( ".desktop" == entry.path().extension()) {
-        // Read content
-        std::ifstream in(entry.path().c_str());
-        std::regex re_icon("^Icon=(.*)");
-        std::regex re_exec("^Exec=([^ ]*).*");
-        std::string icon, exec;
-        for( std::string line; std::getline(in, line); ) {
-          std::smatch m;
-          if(std::regex_match(line, m, re_icon)) {
-            icon = m[1];
-          } else if(std::regex_match(line, m, re_exec)) {
-            exec = std::filesystem::path(m[1]).filename();
+    if(std::filesystem::directory_entry(std::filesystem::path(path)).exists()) {
+      for(std::filesystem::directory_entry entry : std::filesystem::directory_iterator(path)) {
+        if( ".desktop" == entry.path().extension()) {
+          // Read content
+          std::ifstream in(entry.path().c_str());
+          std::regex re_icon("^Icon=(.*)");
+          std::regex re_exec("^Exec=([^ ]*).*");
+          std::string icon, exec;
+          for( std::string line; std::getline(in, line); ) {
+            std::smatch m;
+            if(std::regex_match(line, m, re_icon)) {
+              icon = m[1];
+            } else if(std::regex_match(line, m, re_exec)) {
+              exec = std::filesystem::path(m[1]).filename();
+            }
           }
+          map[exec] = icon;
         }
-        map[exec] = icon;
+        entry.refresh();
       }
-      entry.refresh();
     }
   }
   return map;

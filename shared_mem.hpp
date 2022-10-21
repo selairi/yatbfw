@@ -68,6 +68,8 @@ class shared_mem_t
       std::uniform_int_distribution<unsigned int> distribution(0, std::numeric_limits<unsigned int>::max());
       ss << distribution(engine);
       name = ss.str();
+      if(size == 0)
+        size = len = 1;
 
       // open shared memory file
       fd = memfd_create(name.c_str(), 0);
@@ -83,9 +85,10 @@ class shared_mem_t
       }
 
       // map memory
+      debug << "mmap " << name << std::endl;
       mem = mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
       if(mem == MAP_FAILED) { // NOLINT
-        debug << "mmap failed." << strerror(errno) << std::endl; 
+        debug << "mmap failed: " << strerror(errno) << " len=" << len << " name=" << name << std::endl; 
         throw std::runtime_error(std::string("[shared_mem::shared_mem] mmap failed: ") + std::string(strerror(errno)));
       }
     }
@@ -93,9 +96,9 @@ class shared_mem_t
     ~shared_mem_t() noexcept
     {
       if(fd) {
-        debug << "munmap start" << std::endl;
+        debug << "munmap start: " << name << std::endl;
         if(munmap(mem, len) < 0)
-          debug << "munmap failed: " << strerror(errno) << std::endl;
+          debug << "munmap failed: "  << name << " : " << strerror(errno) << std::endl;
         if(close(fd) < 0)
           debug << "close failed: " << strerror(errno) << std::endl;
         //if(shm_unlink(name.c_str()) < 0)

@@ -120,6 +120,8 @@ void ToolTip::show_tooltip(const std::string & text, int offset)
   debug << "Tooltip m_width: " << m_width << std::endl;
 
   // Build a new window with the right size
+  if(m_width < 1) m_width = 1;
+  if(m_height < 1) m_height = 1;
   create_wayland_surface(offset);
   draw_text(text);
 }

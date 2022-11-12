@@ -58,8 +58,7 @@ class shared_mem_t
     shared_mem_t& operator=(const shared_mem_t&) = delete;
     shared_mem_t& operator=(shared_mem_t&&) noexcept = delete;
 
-    shared_mem_t(size_t size)
-      : len(size)
+    shared_mem_t(size_t size = 1)
     {
       // create random filename
       std::stringstream ss;
@@ -68,8 +67,12 @@ class shared_mem_t
       std::uniform_int_distribution<unsigned int> distribution(0, std::numeric_limits<unsigned int>::max());
       ss << distribution(engine);
       name = ss.str();
-      if(size == 0)
-        size = len = 1;
+      if(size < 1) {
+        size = 1;
+        len = 1;
+      } else {
+        len = size;
+      }
 
       // open shared memory file
       fd = memfd_create(name.c_str(), 0);

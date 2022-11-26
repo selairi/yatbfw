@@ -247,10 +247,10 @@ void Panel::init()
     layer_shell_surface = layer_shell.get_layer_surface(surface, output, zwlr_layer_shell_v1_layer::top, std::string("Window"));
     switch(Settings::get_settings()->panel_position()) {
       case PanelPosition::TOP:
-        layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::top);
+        layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::top | zwlr_layer_surface_v1_anchor::right | zwlr_layer_surface_v1_anchor::left);
         break;
       default:
-        layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::bottom);
+        layer_shell_surface.set_anchor(zwlr_layer_surface_v1_anchor::bottom | zwlr_layer_surface_v1_anchor::right | zwlr_layer_surface_v1_anchor::left);
     }
     layer_shell_surface.set_size(m_width, m_height);
     layer_shell_surface.set_exclusive_zone(Settings::get_settings()->exclusive_zone());

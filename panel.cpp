@@ -40,6 +40,7 @@
 #include "layer-shell.h"
 #include "toplevel.h"
 #include "buttonruncommand.h"
+#include "traybutton.h"
 #include "clock.h"
 #include "battery.h"
 #include "panel.h"
@@ -165,10 +166,19 @@ Panel::Panel()
   m_repaint_partial = false;
   tooltip_cairo_surface = nullptr;
   tooltip_shared_mem = nullptr;
+  m_tray_dbus = nullptr;
 }
 
 void Panel::init()
 {
+  if(! m_tray_dbus) {
+    m_tray_dbus = std::make_shared<TrayDBus>();
+    m_tray_dbus->add_tray_icon = [&](const std::string &tray_icon_dbus_name) {
+      add_tray_icon(tray_icon_dbus_name, false);
+    };
+    m_tray_dbus->init();
+  }
+
   m_width = m_height = Settings::get_settings()->panel_size();
   // retrieve global objects
   registry = display.get_registry();
@@ -318,8 +328,9 @@ void Panel::init()
   cursor_surface = compositor.create_surface();
 
   // draw cursor
-  pointer.on_enter() = [&] (uint32_t serial, const surface_t& /*unused*/, int32_t x, int32_t y)
+  pointer.on_enter() = [&] (uint32_t serial, const surface_t& surface_entered, int32_t x, int32_t y)
   {
+    m_pointer_last_surface_entered = surface_entered;
     cursor_surface.attach(cursor_buffer, 0, 0);
     cursor_surface.damage(0, 0, cursor_image.width(), cursor_image.height());
     cursor_surface.commit();
@@ -327,24 +338,31 @@ void Panel::init()
     debug << "Cursor " << x << y << std::endl;
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    for(auto item : m_panel_items)
-      item->on_mouse_enter(x, y);
-    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
-      item->on_mouse_enter(x, y);
-
-    m_repaint_partial = true;
+    if(surface == surface_entered) {
+      for(auto item : m_panel_items)
+        item->on_mouse_enter(x, y);
+      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+        item->on_mouse_enter(x, y);
+      m_repaint_partial = true;
+    } else if(m_popup->get_surface() == surface_entered) {
+      m_popup->on_mouse_enter(x, y);
+    }
     //draw(serial, true);
   };
 
-  pointer.on_leave() = [&] (uint32_t serial, const surface_t& /*unused*/)
+  pointer.on_leave() = [&] (uint32_t serial, const surface_t& surface_entered)
   {
     debug << "on_leave\n";
-    for(auto item : m_panel_items)
-      item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
-    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
-      item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
-    m_repaint_partial = true;
-    ToolTip::hide();
+    if(surface == surface_entered) {
+      for(auto item : m_panel_items)
+        item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
+      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+        item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
+      m_repaint_partial = true;
+      ToolTip::hide();
+    } else if(m_popup->get_surface() == surface_entered) {
+      m_popup->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
+    }
   };
 
   pointer.on_motion() = [&] (uint32_t time, double x, double y)
@@ -352,39 +370,50 @@ void Panel::init()
     //printf("Cursor %f,%f\n", x, y);
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    for(auto item : m_panel_items) {
-      item->on_mouse_enter(x, y);
-      item->on_mouse_leave(x, y, false);
+    if(surface == m_pointer_last_surface_entered) {
+      for(auto item : m_panel_items) {
+        item->on_mouse_enter(x, y);
+        item->on_mouse_leave(x, y, false);
+      }
+      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+        item->on_mouse_enter(x, y);
+        item->on_mouse_leave(x, y, false);
+      }
+      m_repaint_partial = true;
+    } else if(m_pointer_last_surface_entered == m_popup->get_surface()){
+      m_popup->on_mouse_enter(x, y);
+      m_popup->on_mouse_leave(x, y, false);
     }
-    for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
-      item->on_mouse_enter(x, y);
-      item->on_mouse_leave(x, y, false);
-    }
-    m_repaint_partial = true;
     //draw(-1, true);
   };
 
   pointer.on_button() = [&] (uint32_t serial, uint32_t /*unused*/, uint32_t button, pointer_button_state state)
   {
     debug << "Button action  " << button << std::endl;
-    if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
-      debug << "Button pressed\n";
-      //showToolTip();
-
-      for(auto item : m_panel_items)
-        item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
-      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
-        //((PanelItem*)item)->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
-        item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
-      m_repaint_partial = true;
-      //draw(serial, true);
-    } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
-      for(auto item : m_panel_items)
-        item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
-      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
-        item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
-      m_repaint_partial = true;
-      //draw(serial, true);
+    if(surface == m_pointer_last_surface_entered) {
+      if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
+        debug << "Button pressed\n";
+        for(auto item : m_panel_items)
+          item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
+        for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+          item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
+        m_repaint_partial = true;
+        //draw(serial, true);
+      } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
+        for(auto item : m_panel_items)
+          item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
+        for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+          item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
+        m_repaint_partial = true;
+        //draw(serial, true);
+      }
+    } else if(m_popup->get_surface() == m_pointer_last_surface_entered) {
+      if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
+        debug << "Button pressed\n";
+        m_popup->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
+      } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
+        m_popup->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
+      }
     }
   };
 
@@ -434,7 +463,6 @@ void Panel::on_toplevel_listener(zwlr_foreign_toplevel_handle_v1_t toplevel_hand
     m_toplevel_handles.push_back(toplevel);
   m_repaint_full = true;
 }
-
 
 void Panel::add_launcher(const std::string & icon, const std::string & text, const std::string & tooltip, const std::string & exec, bool start_pos)
 {
@@ -496,6 +524,23 @@ void Panel::add_battery(
   m_panel_items.push_back(c);
 }
 
+void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos)
+{
+  auto c = std::make_shared<TrayButton>(m_tray_dbus, tray_icon_dbus_name);
+  c->set_width(Settings::get_settings()->panel_size() - 1);
+  c->set_height(Settings::get_settings()->panel_size() - 1);
+  c->send_repaint = [&]() {
+    m_repaint_partial = true;
+  };
+  c->new_popup = [&]() -> std::shared_ptr<Popup> {
+    ToolTip::hide();
+    m_popup = std::make_shared<Popup>(&compositor, &display, &xdg_wm_base, &shm, &layer_shell_surface, &m_width, &m_height);
+    return m_popup;
+  };
+  c->set_start_pos(start_pos);
+  m_panel_items.push_back(c);
+}
+
 static long get_time_milliseconds()
 {
   struct timespec time_aux;
@@ -509,7 +554,7 @@ void Panel::run()
   // This loop stops when runnig is false
   // Sends time out each second
   running = true;
-  struct pollfd fds[1];
+  struct pollfd fds[2];
   int timeout_msecs = -1;
   int ret;
   long now_in_msecs;
@@ -517,6 +562,9 @@ void Panel::run()
   fds[0].fd = display.get_fd();
   fds[0].events = POLLIN;
   fds[0].revents = 0;
+
+  if(m_tray_dbus != nullptr)
+    m_tray_dbus->init_struct_pollfd(fds[1]);
 
   while(running) {
     // Update timeout and run timeout events
@@ -545,11 +593,16 @@ void Panel::run()
     display.flush();
     m_repaint_full = m_repaint_partial = false;
     // Wait for events
-    ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_msecs);
+    ret = poll(fds, m_tray_dbus != nullptr ? 2 : 1, timeout_msecs);
     if(ret > 0) {
       if(fds[0].revents) {
+        // Process Wayland events
         display.dispatch();
         fds[0].revents = 0;
+      }
+      if(m_tray_dbus != nullptr && fds[1].revents) {
+        // Process tray DBus events
+        m_tray_dbus->process_poll_event(fds[1]);
       }
     } else if(ret == 0) {
       debug << "Timeout\n";

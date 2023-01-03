@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string>
 #include <systemd/sd-bus.h>
 
 /** This a simple list to add or remove items. The last element is always null.
@@ -122,6 +123,7 @@ static int track_host_handler(sd_bus_track *track, void *userdata) {
     printf("%s\t%d\n", dbus_data->host_name, count);
     if(count <= 0) {
       char *host_name = dbus_data->host_name;
+      printf("NotifierHost has been unregistered: %s\n", host_name);
       dbus_data->host_name = nullptr; // host_name will be removed by sd_bus
       sd_bus_emit_properties_changed(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "IsStatusNotifierHostRegistered", NULL);
       sd_bus_emit_signal(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "StatusNotifierHostUnregistered", "s", host_name);
@@ -138,10 +140,18 @@ static int handle_register_status_notifier_item(sd_bus_message *m, void *userdat
     fprintf(stderr, "Failed to parse parameters: %s\n", strerror(-r));
     return r;
   }
+  const char *sender = sd_bus_message_get_sender(m);
+  if(!strcmp(sender, item_name)) {
+    std::string item(item_name);
+    item += "/StatusNotifierItem";
+    dbus_data->items.append(strdup(item.c_str()));
+  } else {
+    std::string item(sender);
+    item +=item_name;
+    dbus_data->items.append(strdup(item.c_str()));
+  }
 
-  dbus_data->items.append(item_name);
-
-  printf("RegisterStatusNotifierItem: %s\n", item_name);
+  printf("RegisterStatusNotifierItem: %s -- Sender: %s\n", item_name, sd_bus_message_get_sender(m));
 
   // Track object
   if(! dbus_data->track_item) {
@@ -161,6 +171,7 @@ static int handle_register_status_notifier_item(sd_bus_message *m, void *userdat
   return sd_bus_reply_method_return(m, "");
 }
 
+
 static int handle_register_status_notifier_host(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
   DBusData *dbus_data = (DBusData *) userdata;
   char *item_name = nullptr;
@@ -170,12 +181,12 @@ static int handle_register_status_notifier_host(sd_bus_message *m, void *userdat
     return r;
   }
 
+  printf("RegisterStatusNotifierHost: %s\n", item_name);
+  
   if(dbus_data->is_host_name_registered()) {
     sd_bus_error_set_const(ret_error, "org.kde.StatusNotifierWatcher", "Sorry, a host has already been registered.");
     return -EINVAL; 
   }
-
-  printf("RegisterStatusNotifierHost: %s\n", item_name);
 
   dbus_data->host_name = item_name;
   // Track object
@@ -206,6 +217,12 @@ static int get_property(sd_bus *bus, const char *path, const char *interface, co
     r = sd_bus_message_append(reply, "b", dbus_data->is_host_name_registered() ? 1 : 0);
   else if(! strcmp("RegisteredStatusNotifierItems", property))
     r = sd_bus_message_append_strv(reply, dbus_data->items.items);
+  printf("IsStatusNotifierHostRegistered value: %d - ", dbus_data->is_host_name_registered() ? 1 : 0);
+  printf("Error value: %d\n", r);
+  if (r < 0) {
+    fprintf(stderr, "Failed to parse parameters: %s\n", strerror(-r));
+    return r;
+  }
   return r;
 }
 
@@ -240,8 +257,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  sd_bus_slot *slot = NULL;
-  sd_bus *bus = NULL;
+  sd_bus_slot *slot = nullptr;
+  sd_bus *bus = nullptr;
   DBusData dbus_data;
   int r;
 

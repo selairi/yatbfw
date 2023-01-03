@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2021 P.L. Lucas <selairi@gmail.com>
+ * Copyright 2022 P.L. Lucas <selairi@gmail.com>
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 
@@ -13,50 +13,47 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#ifndef __BATTERY_H__
-#define __BATTERY_H__
+#ifndef __TRAYBUTTON_H__
+#define __TRAYBUTTON_H__
 
 #include <string>
 #include <functional>
-#include "buttonruncommand.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <systemd/sd-bus.h>
+#include <memory>
+#include "panelitem.h"
+#include "traydbus.h"
+#include "icons.h"
+#include "popup.h"
 
-
-/*! \class Battery
- *  \brief Battery capacity item to add to panel.
+/*! \class TrayButton
+ *  \brief tray item to add to panel.
  *
  *  This is a battery control item. It shows battery capacity.
  */
-class Battery : public ButtonRunCommand
+class TrayButton : public PanelItem
 {
 public:
-  Battery(
-     const std::string & icon_battery_full,   // Battery level 100% - 80%
-     const std::string & icon_battery_good,   // 80% - 60%
-     const std::string & icon_battery_medium, // 60% - 40%
-     const std::string & icon_battery_low,    // 40% - 20%
-     const std::string & icon_battery_empty,  // 20% - 0%
-     const std::string & icon_battery_charging,
-     const std::string & icon_battery_charged,
-     const bool no_text                     // Don't show battery level text
-  );
+  TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &tray_icon);
 
-  virtual void timeout() override;
+  virtual void mouse_clicked(int button) override;
   virtual void mouse_enter() override;
+  virtual void paint(cairo_t *cr) override;
 
   std::function<void()> send_repaint;
+  std::function<std::shared_ptr<Popup>()> new_popup;
 
 private:
-  std::string 
-    m_icon_battery_full,    // Battery level 100% - 80%
-    m_icon_battery_good,    // 80% - 60%
-    m_icon_battery_medium,  // 60% - 40%
-    m_icon_battery_low,     // 40% - 20%
-    m_icon_battery_empty,   // 20% - 0%
-    m_icon_battery_charging,
-    m_icon_battery_charged;
-  bool m_no_text;
-  int m_level; // Actual battery level
-  void update_battery_level();
+  std::shared_ptr<TrayDBus> m_tray_dbus;
+  std::string m_tray_icon_dbus_name;
+  std::string m_tray_icon_name;
+  std::shared_ptr<Icon> m_icon_ref;
+  cairo_surface_t *m_icon;
+
+  void paint_pixmap(cairo_t *cr);
+  void paint_icon_name(cairo_t *cr);
 };
 
 #endif

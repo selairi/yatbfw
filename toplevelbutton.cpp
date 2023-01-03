@@ -124,6 +124,13 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
   m_toplevel_handle.on_done() =[&]() {
   };
   m_toplevel_handle.on_closed() =[&]() {
+    // Avoid delete this object 
+    std::shared_ptr<ToplevelButton> item = *std::find_if(
+        m_toplevels->begin(), m_toplevels->end(), 
+        [this](std::shared_ptr<ToplevelButton> item) {
+          return item.get() == this;
+        }
+    );
     auto iter = std::remove_if(
         m_toplevels->begin(), m_toplevels->end(), 
         [this](std::shared_ptr<ToplevelButton> item) {

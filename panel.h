@@ -27,9 +27,9 @@
 #include "button.h"
 #include "toplevelbutton.h"
 #include "tooltip.h"
-
+#include "traydbus.h"
+#include "popup.h"
 #include <memory>
-
 using namespace wayland;
 
 class shared_mem_t;
@@ -54,6 +54,7 @@ public:
   void run();
 
   void add_launcher(const std::string & icon, const std::string & text, const std::string & tooltip, const std::string & exec, bool start_pos = true);
+
   void add_clock(const std::string & icon, const std::string & format, const std::string & exec, bool start_pos = true);
   void add_battery(
      const std::string & icon_battery_full,    
@@ -65,6 +66,7 @@ public:
      const std::string & icon_battery_charged, 
      bool no_text,
      const std::string & exec, bool start_pos = true);
+  void add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos);
   void show_tooltip();
 
 
@@ -112,13 +114,17 @@ private:
   uint32_t m_width, m_height;
   std::vector<std::shared_ptr<PanelItem> > m_panel_items;
   uint32_t m_last_cursor_x, m_last_cursor_y;
+  surface_t m_pointer_last_surface_entered;
   uint32_t m_toplevel_items_offset;
 
   std::shared_ptr<shared_mem_t> shared_mem;
   std::array<buffer_t, 2> buffer;
   int cur_buf;
+
+  std::shared_ptr<TrayDBus> m_tray_dbus;
   
   ToolTip tooltip;
+  std::shared_ptr<Popup> m_popup;
 
   bool running;
   bool has_pointer;

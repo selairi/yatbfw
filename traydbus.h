@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2021 P.L. Lucas <selairi@gmail.com>
+ * Copyright 2022 P.L. Lucas <selairi@gmail.com>
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 
@@ -13,50 +13,49 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#ifndef __BATTERY_H__
-#define __BATTERY_H__
+#ifndef __TRAYDBUS_H__
+#define __TRAYDBUS_H__
 
 #include <string>
 #include <functional>
-#include "buttonruncommand.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <systemd/sd-bus.h>
+#include <poll.h>
 
-
-/*! \class Battery
- *  \brief Battery capacity item to add to panel.
- *
- *  This is a battery control item. It shows battery capacity.
+/*! \class TrayDBus
+ *  \brief tray dbus client.
  */
-class Battery : public ButtonRunCommand
+class TrayDBus
 {
 public:
-  Battery(
-     const std::string & icon_battery_full,   // Battery level 100% - 80%
-     const std::string & icon_battery_good,   // 80% - 60%
-     const std::string & icon_battery_medium, // 60% - 40%
-     const std::string & icon_battery_low,    // 40% - 20%
-     const std::string & icon_battery_empty,  // 20% - 0%
-     const std::string & icon_battery_charging,
-     const std::string & icon_battery_charged,
-     const bool no_text                     // Don't show battery level text
-  );
+  TrayDBus();
+  ~TrayDBus();
 
-  virtual void timeout() override;
-  virtual void mouse_enter() override;
+  void init();
+  void finish();
 
-  std::function<void()> send_repaint;
+  void init_struct_pollfd(struct pollfd &fds);
+  void process_poll_event(struct pollfd &fds);
+  std::string get_icon_title(const std::string &icon_dbus_name);
+  std::string get_icon_name(const std::string &icon_dbus_name);
+  void icon_activate(const std::string &icon_dbus_name, int32_t x, int32_t y);
+  void icon_context_menu(const std::string &icon_dbus_name, int32_t x, int32_t y);
+  bool get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefered_size, int32_t *width, int32_t *height, uint8_t **bytes);
+
+  struct DBusMenu {
+    std::string text;
+    int id;
+  };
+  std::vector<DBusMenu> get_menu(const std::string &icon_dbus_name);
+
+  std::function<void(const std::string &icon_dbus_name)> add_tray_icon;
 
 private:
-  std::string 
-    m_icon_battery_full,    // Battery level 100% - 80%
-    m_icon_battery_good,    // 80% - 60%
-    m_icon_battery_medium,  // 60% - 40%
-    m_icon_battery_low,     // 40% - 20%
-    m_icon_battery_empty,   // 20% - 0%
-    m_icon_battery_charging,
-    m_icon_battery_charged;
-  bool m_no_text;
-  int m_level; // Actual battery level
-  void update_battery_level();
+  sd_bus_slot *m_slot;
+  sd_bus *m_bus;
+  std::string m_interface_name;
 };
 
 #endif

@@ -16,6 +16,7 @@
 #include <linux/input-event-codes.h>
 #include "debug.h"
 #include "traybutton.h"
+#include "utils.h"
 
 TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &tray_icon_dbus_name) : PanelItem()
 {
@@ -25,14 +26,21 @@ TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &t
   m_tray_icon_name = m_tray_dbus->get_icon_name(m_tray_icon_dbus_name);
 }
 
+void TrayButton::set_fd(const std::vector<int> &fds)
+{
+  m_fds = fds;
+}
+
 void TrayButton::paint(cairo_t *cr)
 {
   std::string icon_name = m_tray_dbus->get_icon_name(m_tray_icon_dbus_name);
   if(icon_name.empty()) 
     paint_pixmap(cr);
   else {
-    if(icon_name != m_tray_icon_name)
-      m_icon_ref = Icon::get_icon(m_tray_icon_name);
+    if(icon_name != m_tray_icon_name || m_icon_ref == nullptr) {
+      m_tray_icon_name = icon_name;
+      m_icon_ref = Icon::get_icon(Icon::suggested_icon_for_id(m_tray_icon_name));
+    }
     paint_icon_name(cr);
   }
 }
@@ -86,8 +94,16 @@ void TrayButton::mouse_clicked(int button)
   if(button == BTN_LEFT) 
     m_tray_dbus->icon_activate(m_tray_icon_dbus_name, m_x, m_y);
   else if(button == BTN_RIGHT) {
-    popup = new_popup();
-    popup->show(m_x);
-    m_tray_dbus->icon_context_menu(m_tray_icon_dbus_name, m_x, m_y);
+    //popup = new_popup();
+    //popup->show(m_x);
+    std::vector<std::string> args = m_tray_dbus->get_menu_path(m_tray_icon_dbus_name);
+    printf("args.size: %d\n", args.size());
+    if(args.size() < 2)
+      m_tray_dbus->icon_context_menu(m_tray_icon_dbus_name, m_x, m_y);
+    else {
+      std::string command = "dbusmenu-cmd '" + args[0] + "' '" + args[1] + "'";
+      printf("Command: %s\n", command.c_str());
+      Utils::exec(command, m_fds);
+    }
   }
 }

@@ -15,6 +15,7 @@
   
 #include "debug.h"
 #include "buttonruncommand.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <iostream>
 #include <sys/types.h>
@@ -23,11 +24,10 @@
 
 ButtonRunCommand::ButtonRunCommand() : Button() 
 {
-  m_fd = -1;
 }
+
 ButtonRunCommand::ButtonRunCommand(const std::string & icon_path, const std::string & text, const std::string & tooltip) :  Button(icon_path, text)
 {
-  m_fd = -1;
   set_tooltip(tooltip);
 }
 
@@ -36,29 +36,20 @@ void ButtonRunCommand::set_command(const std::string & command)
   m_command = command;
 }
 
-void ButtonRunCommand::set_fd(int fd)
+void ButtonRunCommand::set_fd(const std::vector<int> &fds)
 {
-  m_fd = fd;
+  m_fds = fds;
 }
 
 void ButtonRunCommand::mouse_clicked(int button)
 {
   if(button == BTN_LEFT) {
     debug << m_command  << " &>/dev/null &" << std::endl;
-    if(m_fd < 0) {
+    if(m_fds.size() < 1) {
       debug_error << "File descriptor has not been set. Use set_fd to set it." << std::endl;
       return;
     }
-    // Ignore child signals (no zombie process)
-    signal(SIGCHLD, SIG_IGN);
-    if(fork() == 0) {
-      close(m_fd);
-      system((m_command + " &> /dev/null &").c_str());
-      // Wait until child dies
-      int status;
-      wait(&status);
-      exit(0);
-    }
+    Utils::exec(m_command, m_fds); 
   }
 }
 

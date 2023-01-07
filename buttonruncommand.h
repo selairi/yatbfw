@@ -17,6 +17,7 @@
 #define __BUTTON_RUN_COMMAND_H__
 
 #include <string>
+#include <vector>
 #include "button.h"
 
 
@@ -35,13 +36,13 @@ public:
    * Example:
    *  set_fd(display.get_fd());
    */
-  void set_fd(int fd);
+  void set_fd(const std::vector<int> &fds);
 
   virtual void mouse_clicked(int button) override;
 
 private:
   std::string m_command;
-  int m_fd;
+  std::vector<int> m_fds;
 };
 
 #endif

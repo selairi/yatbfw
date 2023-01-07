@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <systemd/sd-bus.h>
 #include <memory>
+#include <vector>
 #include "panelitem.h"
 #include "traydbus.h"
 #include "icons.h"
@@ -45,12 +46,15 @@ public:
   std::function<void()> send_repaint;
   std::function<std::shared_ptr<Popup>()> new_popup;
 
+  void set_fd(const std::vector<int> &fds);
 private:
   std::shared_ptr<TrayDBus> m_tray_dbus;
   std::string m_tray_icon_dbus_name;
   std::string m_tray_icon_name;
   std::shared_ptr<Icon> m_icon_ref;
   cairo_surface_t *m_icon;
+
+  std::vector<int> m_fds;
 
   void paint_pixmap(cairo_t *cr);
   void paint_icon_name(cairo_t *cr);

@@ -30,6 +30,7 @@
 
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
@@ -45,6 +46,7 @@
 #include "battery.h"
 #include "panel.h"
 #include "settings.h"
+#include "utils.h"
 
 #define WIDTH 34
 #define HEIGHT 34
@@ -167,14 +169,37 @@ Panel::Panel()
   tooltip_cairo_surface = nullptr;
   tooltip_shared_mem = nullptr;
   m_tray_dbus = nullptr;
+  m_popup = nullptr;
+}
+
+static void sigcont_handler(int sig)
+{
+  printf("Signal %d\n", sig);
 }
 
 void Panel::init()
 {
   if(! m_tray_dbus) {
+    // Start StatusNotifyWatcher daemon
+    int *stat_loc = nullptr;
+    printf("Starting status-notify-watcher-daemon\n");
+    pid_t child_pid;
+    if((child_pid = fork()) == 0) {
+      int exit_value = execlp("status-notify-watcher-daemon", "status-notify-watcher-daemon", nullptr);
+      if(exit_value < 0)
+        printf("StatusNotifyWatcher error: %d error: %s\n", exit_value, strerror(errno));
+      else
+        printf("StatusNotifyWatcher is runnig\n");
+      exit(0);
+    }
+    printf("Waiting for signal. My pid %d\n", getpid());
+    signal(SIGCONT, sigcont_handler);
+    pause();
+    printf("StatusNotifyWatcher is running\n");
     m_tray_dbus = std::make_shared<TrayDBus>();
     m_tray_dbus->add_tray_icon = [&](const std::string &tray_icon_dbus_name) {
       add_tray_icon(tray_icon_dbus_name, false);
+      m_repaint_full = true;
     };
     m_tray_dbus->init();
   }
@@ -330,47 +355,53 @@ void Panel::init()
   // draw cursor
   pointer.on_enter() = [&] (uint32_t serial, const surface_t& surface_entered, int32_t x, int32_t y)
   {
+    debug << "Cursor on_enter start:" << std::endl;
     m_pointer_last_surface_entered = surface_entered;
     cursor_surface.attach(cursor_buffer, 0, 0);
     cursor_surface.damage(0, 0, cursor_image.width(), cursor_image.height());
     cursor_surface.commit();
     pointer.set_cursor(serial, cursor_surface, 0, 0);
-    debug << "Cursor " << x << y << std::endl;
+    debug << "Cursor " << x << ", " << y << " m_height: " << m_height << " popup visible: " << std::endl;
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    if(surface == surface_entered) {
+    if(y <= m_height && surface == surface_entered) {
+      debug << "Cursor Items" << std::endl;
       for(auto item : m_panel_items)
         item->on_mouse_enter(x, y);
+      debug << "Cursor Toplevels" << std::endl;
       for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
         item->on_mouse_enter(x, y);
       m_repaint_partial = true;
-    } else if(m_popup->get_surface() == surface_entered) {
+    } else if(m_popup != nullptr && m_popup->is_visible() && m_popup->get_surface() == surface_entered) {
+      debug << "Cursor popup" << std::endl;
       m_popup->on_mouse_enter(x, y);
     }
+    debug << "Cursor on_enter end." << std::endl;
     //draw(serial, true);
   };
 
-  pointer.on_leave() = [&] (uint32_t serial, const surface_t& surface_entered)
+  pointer.on_leave() = [&] (uint32_t serial, const surface_t& surface_left)
   {
     debug << "on_leave\n";
-    if(surface == surface_entered) {
+    if(surface == surface_left) {
       for(auto item : m_panel_items)
         item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
       for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
         item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
       m_repaint_partial = true;
       ToolTip::hide();
-    } else if(m_popup->get_surface() == surface_entered) {
+    } else if(m_popup != nullptr && m_popup->is_visible() && m_popup->get_surface() == surface_left) {
       m_popup->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
     }
   };
 
   pointer.on_motion() = [&] (uint32_t time, double x, double y)
   {
+    debug << "on_motion\n";
     //printf("Cursor %f,%f\n", x, y);
     m_last_cursor_x = x;
     m_last_cursor_y = y;
-    if(surface == m_pointer_last_surface_entered) {
+    if(y <= m_height && surface == m_pointer_last_surface_entered) {
       for(auto item : m_panel_items) {
         item->on_mouse_enter(x, y);
         item->on_mouse_leave(x, y, false);
@@ -380,7 +411,7 @@ void Panel::init()
         item->on_mouse_leave(x, y, false);
       }
       m_repaint_partial = true;
-    } else if(m_pointer_last_surface_entered == m_popup->get_surface()){
+    } else if(m_popup != nullptr && m_popup->is_visible() && m_pointer_last_surface_entered == m_popup->get_surface()){
       m_popup->on_mouse_enter(x, y);
       m_popup->on_mouse_leave(x, y, false);
     }
@@ -424,6 +455,7 @@ void Panel::init()
     //  printf("on_axis: axis vertical\n");
     //else
     //  printf("on_axis: axis horizontal\n");
+    debug << "on_axis\n";
     m_toplevel_items_offset += (value > 0.0 ? 1 : -1) * Settings::get_settings()->panel_size();
     m_repaint_full = true;
     //draw();
@@ -468,7 +500,7 @@ void Panel::add_launcher(const std::string & icon, const std::string & text, con
 {
   auto n = std::make_shared<ButtonRunCommand>(icon, text, tooltip);
   n->set_command(exec);
-  n->set_fd(display.get_fd());
+  n->set_fd(get_fds());
   n->set_width(Settings::get_settings()->panel_size() - 1);
   n->set_height(Settings::get_settings()->panel_size() - 1);
   n->set_start_pos(start_pos);
@@ -485,7 +517,7 @@ void Panel::add_clock(const std::string & icon, const std::string & format, cons
     //draw(-1, true);
     m_repaint_partial = true;
   };
-  c->set_fd(display.get_fd());
+  c->set_fd(get_fds());
   c->set_start_pos(start_pos);
   m_panel_items.push_back(c);
 }
@@ -519,14 +551,26 @@ void Panel::add_battery(
     //draw(-1, true);
     m_repaint_partial = true;
   };
-  c->set_fd(display.get_fd());
+  c->set_fd(get_fds());
   c->set_start_pos(start_pos);
   m_panel_items.push_back(c);
 }
 
+std::vector<int> Panel::get_fds()
+{
+  std::vector<int> fds;
+  fds.push_back(display.get_fd());
+  if(m_tray_dbus != nullptr && m_tray_dbus->get_fd() > -1)
+    fds.push_back(m_tray_dbus->get_fd());
+  return fds;
+}
+
 void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos)
 {
+  printf("[Panel::add_tray_icon]\n");
+  printf("tray_icon_dbus_name %s\n", tray_icon_dbus_name.c_str());
   auto c = std::make_shared<TrayButton>(m_tray_dbus, tray_icon_dbus_name);
+  printf("TrayButton make\n");
   c->set_width(Settings::get_settings()->panel_size() - 1);
   c->set_height(Settings::get_settings()->panel_size() - 1);
   c->send_repaint = [&]() {

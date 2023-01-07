@@ -36,6 +36,7 @@ public:
   void init();
   void finish();
 
+  int get_fd();
   void init_struct_pollfd(struct pollfd &fds);
   void process_poll_event(struct pollfd &fds);
   std::string get_icon_title(const std::string &icon_dbus_name);
@@ -43,12 +44,11 @@ public:
   void icon_activate(const std::string &icon_dbus_name, int32_t x, int32_t y);
   void icon_context_menu(const std::string &icon_dbus_name, int32_t x, int32_t y);
   bool get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefered_size, int32_t *width, int32_t *height, uint8_t **bytes);
+  bool add_listener(const std::string &icon_dbus_name, const std::string &signal_name, std::function<void(const std::string &)> handler);
+  bool add_listener_full(const std::string &destination, const std::string &path, const std::string interface, const std::string &signal_name, std::function<void(const std::string &)> handler);
 
-  struct DBusMenu {
-    std::string text;
-    int id;
-  };
-  std::vector<DBusMenu> get_menu(const std::string &icon_dbus_name);
+
+  std::vector<std::string> get_menu_path(const std::string &icon_dbus_name);
 
   std::function<void(const std::string &icon_dbus_name)> add_tray_icon;
 

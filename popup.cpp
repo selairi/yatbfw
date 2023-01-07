@@ -51,6 +51,7 @@ Popup::Popup(compositor_t *compositor, display_t *display, xdg_wm_base_t *xdg_wm
   m_cairo_surface = nullptr;
 
   m_width = m_height = 32;
+  m_visible = false;
 
   add_item(std::make_shared<Button>("edit-undo", "Hola mundo"));
   add_item(std::make_shared<Button>("firefox", "Firefox"));
@@ -62,10 +63,14 @@ Popup::~Popup()
   hide();
 }
 
-
+bool Popup::is_visible()
+{
+  return m_visible;
+}
 
 void Popup::hide()
 {
+  m_visible = false;
   if(m_shared_mem) {
     m_xdg_popup.proxy_release();
     m_xdg_positioner.proxy_release();
@@ -113,6 +118,7 @@ void Popup::show(int offset)
   cr = cairo_create(m_cairo_surface);
   paint(cr);
   cairo_destroy(cr);
+  m_visible = true;
 }
 
 void Popup::create_wayland_surface(int offset)

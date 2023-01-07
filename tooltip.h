@@ -72,6 +72,7 @@ private:
   std::array<buffer_t, 2> m_buffer;
   cairo_surface_t *m_cairo_surface;
   uint32_t m_width, m_height;
+  bool m_visible;
 };
 
 #endif

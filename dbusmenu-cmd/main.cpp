@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
   QMenu *menu = importMenu.menu();
 
   button.setMenu(menu);
+  button.setWindowState(Qt::WindowFullScreen);
   button.show();
 
   return a.exec();

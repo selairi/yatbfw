@@ -131,6 +131,8 @@ private:
   bool has_keyboard;
   bool m_repaint_full;
   bool m_repaint_partial;
+
+  std::vector<int> get_fds();
 };
 
 #endif

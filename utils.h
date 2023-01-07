@@ -29,6 +29,7 @@ class Utils
      */
     static std::string read_command(std::string command);
     static std::string read_command(const char *command);
+    static void exec(const std::string &command, const std::vector<int> &fds);
 };
 
 // Get lines of text

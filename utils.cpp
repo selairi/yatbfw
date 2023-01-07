@@ -16,6 +16,10 @@
 #include "debug.h"
 #include "utils.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <vector>
 
 std::string Utils::read_command(std::string command)
@@ -56,3 +60,17 @@ std::vector<std::string> get_lines(std::string text)
   return lines;
 }
 
+void Utils::exec(const std::string &command, const std::vector<int> &fds)
+{
+    signal(SIGCHLD, SIG_IGN);
+    if(fork() == 0) {
+      for(int fd : fds)
+        close(fd);
+      system((command + " &> /dev/null &").c_str());
+      // Wait until child dies
+      int status;
+      wait(&status);
+      exit(0);
+    }
+
+}

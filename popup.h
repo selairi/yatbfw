@@ -43,6 +43,7 @@ public:
   
   void show(int offset);
   void hide();
+  bool is_visible();
 
   void add_item(std::shared_ptr<PanelItem> item);
 
@@ -77,6 +78,7 @@ private:
   std::array<buffer_t, 2> m_buffer;
   cairo_surface_t *m_cairo_surface;
   uint32_t m_width, m_height;
+  bool m_visible;
 
   // Items in popup
   std::vector<std::shared_ptr<PanelItem> > m_items;

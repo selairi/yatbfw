@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <string>
 #include <systemd/sd-bus.h>
+#include <signal.h>
 
 /** This a simple list to add or remove items. The last element is always null.
  */
@@ -141,15 +142,16 @@ static int handle_register_status_notifier_item(sd_bus_message *m, void *userdat
     return r;
   }
   const char *sender = sd_bus_message_get_sender(m);
+  std::string item;
   if(!strcmp(sender, item_name)) {
-    std::string item(item_name);
+    item = item_name;
     item += "/StatusNotifierItem";
-    dbus_data->items.append(strdup(item.c_str()));
   } else {
-    std::string item(sender);
+    item = sender;
     item +=item_name;
-    dbus_data->items.append(strdup(item.c_str()));
   }
+  char *item_ptr = strdup(item.c_str());
+  dbus_data->items.append(item_ptr);
 
   printf("RegisterStatusNotifierItem: %s -- Sender: %s\n", item_name, sd_bus_message_get_sender(m));
 
@@ -166,7 +168,11 @@ static int handle_register_status_notifier_item(sd_bus_message *m, void *userdat
   }
 
   sd_bus_emit_properties_changed(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems", NULL);
-  sd_bus_emit_signal(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "StatusNotifierItemRegistered", "s", item_name);
+  r = sd_bus_emit_signal(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "StatusNotifierItemRegistered", "s", item_ptr);
+  if(r < 0) {
+    fprintf(stderr, "Failed to send StatusNotifierItemRegistered signal. Error: %s\n", strerror(-r));
+    return r;
+  }
 
   return sd_bus_reply_method_return(m, "");
 }
@@ -244,9 +250,11 @@ static const sd_bus_vtable watcher_vtable[] = {
 static void finish(sd_bus *bus, sd_bus_slot *slot) {
   sd_bus_slot_unref(slot);
   sd_bus_unref(bus);
+  kill(getppid(), SIGCONT);
 }
 
 int main(int argc, char *argv[]) {
+  int parent_pid = getppid();
   for(int n = 1; n < argc; n++) {
     if(!strcmp(argv[n], "--help")) {
       printf("This is a simple StatusNotifierWatcher daemon.\n");
@@ -291,6 +299,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  bool sigcont_to_parent = false;
   for (;;) {
     // Process requests
     r = sd_bus_process(bus, NULL);
@@ -301,6 +310,12 @@ int main(int argc, char *argv[]) {
     }
 
     if(r == 0) {
+      if(!sigcont_to_parent) {
+        sigcont_to_parent = true;
+        if(kill(getppid(), SIGCONT) <0) 
+          printf("SIGCONT error: %s", strerror(errno));
+        printf("SIGCONT send to parent with pid %d\n", getppid());
+      }
       // Wait for the next request to process.
       // sd_bus_wait has to be called when sd_bus_process returns 0.
       r = sd_bus_wait(bus, (uint64_t) -1);

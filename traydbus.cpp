@@ -145,6 +145,7 @@ void TrayDBus::init()
       add_tray_icon(item);
     }
 
+    // Add and remove new icons
     add_listener_full(
         "org.kde.StatusNotifierWatcher",
         "/StatusNotifierWatcher",
@@ -152,6 +153,15 @@ void TrayDBus::init()
         "StatusNotifierItemRegistered",
         [=](const std::string &item_name) {
             add_tray_icon(item_name);
+          }
+        );
+    add_listener_full(
+        "org.kde.StatusNotifierWatcher",
+        "/StatusNotifierWatcher",
+        "org.kde.StatusNotifierWatcher",
+        "StatusNotifierItemUnregistered",
+        [=](const std::string &item_name) {
+            remove_tray_icon(item_name);
           }
         );
   }

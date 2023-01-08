@@ -21,6 +21,7 @@
 #include <linux/input.h>
 #include <wayland-cursor.hpp>
 #include <cairo/cairo.h>
+#include <map>
 
 #include <layer-shell.h>
 #include <toplevel.h>
@@ -67,6 +68,7 @@ public:
      bool no_text,
      const std::string & exec, bool start_pos = true);
   void add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos);
+  void remove_tray_icon(const std::string &tray_icon_dbus_name);
   void show_tooltip();
 
 
@@ -113,6 +115,7 @@ private:
 
   uint32_t m_width, m_height;
   std::vector<std::shared_ptr<PanelItem> > m_panel_items;
+  std::map<std::string,std::shared_ptr<PanelItem> > m_panel_tray_icons;
   uint32_t m_last_cursor_x, m_last_cursor_y;
   surface_t m_pointer_last_surface_entered;
   uint32_t m_toplevel_items_offset;

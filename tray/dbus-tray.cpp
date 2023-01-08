@@ -18,6 +18,7 @@
 #include <string>
 #include <systemd/sd-bus.h>
 #include <signal.h>
+#include <map>
 
 /** This a simple list to add or remove items. The last element is always null.
  */
@@ -79,6 +80,7 @@ struct DBusData {
   char *host_name;
   sd_bus_track *track_item, *track_host;
   sd_bus *bus;
+  std::map<std::string,sd_bus_message *> sender_map;
 
   DBusData() {
     bus = nullptr;
@@ -100,12 +102,13 @@ static int track_item_handler(sd_bus_track *track, void *userdata) {
     for(int n = 0; n < dbus_data->items.items_length; n++) {
       if(dbus_data->items.items[n] != nullptr) {
         char *item_name = dbus_data->items.items[n];
-        int count = sd_bus_track_count_name(dbus_data->track_item, item_name);
+        int count = sd_bus_track_count_sender(dbus_data->track_item, dbus_data->sender_map[item_name]);
         printf("%s\t%d\n", item_name, count);
         if(count <= 0) {
           dbus_data->items.remove(item_name); 
           sd_bus_emit_properties_changed(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems", NULL);
           sd_bus_emit_signal(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "StatusNotifierItemUnregistered", "s", item_name);
+          printf("StatusNotifierHostUnregistered %s\n", item_name);
           item_name = nullptr; // item_name will be removed by sd_bus
         }
       }
@@ -164,7 +167,8 @@ static int handle_register_status_notifier_item(sd_bus_message *m, void *userdat
     }
   }
   if(dbus_data->track_item) {
-    sd_bus_track_add_name(dbus_data->track_item, item_name);
+    sd_bus_track_add_sender(dbus_data->track_item, m);
+    dbus_data->sender_map[item] = m;
   }
 
   sd_bus_emit_properties_changed(dbus_data->bus, "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems", NULL);

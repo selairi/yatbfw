@@ -196,9 +196,15 @@ void Panel::init()
     signal(SIGCONT, sigcont_handler);
     pause();
     printf("StatusNotifyWatcher is running\n");
+    // Make a new StatusNotifyWatcher dbus connection
     m_tray_dbus = std::make_shared<TrayDBus>();
     m_tray_dbus->add_tray_icon = [&](const std::string &tray_icon_dbus_name) {
       add_tray_icon(tray_icon_dbus_name, false);
+      m_repaint_full = true;
+    };
+    m_tray_dbus->remove_tray_icon = [&](const std::string &tray_icon_dbus_name) {
+      printf("Panel removing icon %s\n", tray_icon_dbus_name.c_str());
+      remove_tray_icon(tray_icon_dbus_name);
       m_repaint_full = true;
     };
     m_tray_dbus->init();
@@ -567,10 +573,7 @@ std::vector<int> Panel::get_fds()
 
 void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos)
 {
-  printf("[Panel::add_tray_icon]\n");
-  printf("tray_icon_dbus_name %s\n", tray_icon_dbus_name.c_str());
   auto c = std::make_shared<TrayButton>(m_tray_dbus, tray_icon_dbus_name);
-  printf("TrayButton make\n");
   c->set_width(Settings::get_settings()->panel_size() - 1);
   c->set_height(Settings::get_settings()->panel_size() - 1);
   c->send_repaint = [&]() {
@@ -583,6 +586,21 @@ void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos
   };
   c->set_start_pos(start_pos);
   m_panel_items.push_back(c);
+  m_panel_tray_icons[tray_icon_dbus_name] = c;
+}
+
+void Panel::remove_tray_icon(const std::string &tray_icon_dbus_name)
+{
+  if(m_panel_tray_icons.find(tray_icon_dbus_name) != m_panel_tray_icons.end()) {
+    auto c = m_panel_tray_icons[tray_icon_dbus_name];
+    m_panel_tray_icons.erase(tray_icon_dbus_name);
+    for(std::vector<std::shared_ptr<PanelItem> >::iterator it = m_panel_items.begin(); it != m_panel_items.end(); it++) {
+      if((*it) == c) {
+        m_panel_items.erase(it);
+        break;
+      }
+    }
+  }
 }
 
 static long get_time_milliseconds()

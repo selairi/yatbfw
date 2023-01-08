@@ -51,6 +51,8 @@ public:
   std::vector<std::string> get_menu_path(const std::string &icon_dbus_name);
 
   std::function<void(const std::string &icon_dbus_name)> add_tray_icon;
+  std::function<void(const std::string &icon_dbus_name)> remove_tray_icon;
+
 
 private:
   sd_bus_slot *m_slot;

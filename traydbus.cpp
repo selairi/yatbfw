@@ -240,7 +240,9 @@ std::string TrayDBus::get_icon_title(const std::string &icon_dbus_name)
       &error, &res);
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
+    remove_tray_icon(icon_dbus_name);
+    return std::string();
+    //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
   std::string title(res);
   free(res);
@@ -259,7 +261,9 @@ std::string TrayDBus::get_icon_name(const std::string &icon_dbus_name)
       &error, &res);
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
+    remove_tray_icon(icon_dbus_name);
+    return std::string();
+    //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
   std::string title(res);
   free(res);
@@ -282,7 +286,8 @@ void TrayDBus::icon_activate(const std::string &icon_dbus_name, int32_t x, int32
 
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
+    remove_tray_icon(icon_dbus_name);
+    //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
 }
 
@@ -302,7 +307,8 @@ void TrayDBus::icon_context_menu(const std::string &icon_dbus_name, int32_t x, i
 
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
+    remove_tray_icon(icon_dbus_name);
+    // throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
 }
 
@@ -323,7 +329,9 @@ bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefer
 
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " IconPixmap: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
+    remove_tray_icon(icon_dbus_name);
+    return false;
+    //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
   // Open reply as array of type "a(iiay)"
   r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "(iiay)");

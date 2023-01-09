@@ -115,6 +115,7 @@ private:
 
   uint32_t m_width, m_height;
   std::vector<std::shared_ptr<PanelItem> > m_panel_items;
+  std::vector<std::shared_ptr<PanelItem> > m_panel_items_delete_later;
   std::map<std::string,std::shared_ptr<PanelItem> > m_panel_tray_icons;
   uint32_t m_last_cursor_x, m_last_cursor_y;
   surface_t m_pointer_last_surface_entered;

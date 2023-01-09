@@ -91,14 +91,14 @@ int main(int argn, char *argv[])
     }
   }
 
-  try {
+ // try {
     panel.init();
     // Run events loop
     panel.run();
-  } catch(const std::exception& e) {
-    std::cerr << "Exception launched:" << std::endl;
-    std::cerr << e.what() << std::endl;
-    printstacktrace(0);
-  }
+  //} catch(const std::exception& e) {
+  //  std::cerr << "Exception launched:" << std::endl;
+  //  std::cerr << e.what() << std::endl;
+  //  printstacktrace(0);
+  //}
   return 0;
 }

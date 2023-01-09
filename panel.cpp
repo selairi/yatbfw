@@ -205,6 +205,8 @@ void Panel::init()
     m_tray_dbus->remove_tray_icon = [&](const std::string &tray_icon_dbus_name) {
       printf("Panel removing icon %s\n", tray_icon_dbus_name.c_str());
       remove_tray_icon(tray_icon_dbus_name);
+      printf("Panel removed icon\n");
+      printf("Panel removed icon %s\n", tray_icon_dbus_name.c_str());
       m_repaint_full = true;
     };
     m_tray_dbus->init();
@@ -592,7 +594,8 @@ void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos
 void Panel::remove_tray_icon(const std::string &tray_icon_dbus_name)
 {
   if(m_panel_tray_icons.find(tray_icon_dbus_name) != m_panel_tray_icons.end()) {
-    auto c = m_panel_tray_icons[tray_icon_dbus_name];
+    std::shared_ptr<PanelItem> c = m_panel_tray_icons[tray_icon_dbus_name];
+    m_panel_items_delete_later.push_back(c);
     m_panel_tray_icons.erase(tray_icon_dbus_name);
     for(std::vector<std::shared_ptr<PanelItem> >::iterator it = m_panel_items.begin(); it != m_panel_items.end(); it++) {
       if((*it) == c) {
@@ -673,6 +676,11 @@ void Panel::run()
       //}
     } else {
       debug << "poll failed %d" << ret << std::endl;
+    }
+    // Delete items after drawing operations
+    if(! m_panel_items_delete_later.empty()) {
+      debug << "Delete items after drawing operations" << std::endl;
+      m_panel_items_delete_later.clear();
     }
   }
 }

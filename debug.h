@@ -13,6 +13,7 @@
 
 #define debug_error std::cerr << "ERROR: [" << __PRETTY_FUNCTION__ << "] Line:" << __LINE__ << "\t"
 
+void debug_printstacktrace();
 
 extern bool m_debug;
 

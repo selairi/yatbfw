@@ -13,6 +13,22 @@
  */
  
 #include "debug.h"
+#include <execinfo.h>
+#include <unistd.h>
 
 bool m_debug = false;
 
+void debug_printstacktrace()
+{
+  void *array[20];
+  size_t size;
+
+  fprintf(stderr, "Printing backtrace:\n");
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 20);
+
+  // print out all the frames to stderr
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}

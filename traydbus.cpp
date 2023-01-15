@@ -219,13 +219,13 @@ void TrayDBus::process_poll_event(struct pollfd &fds)
 static std::string get_icon_dbus_name_destination(const std::string &icon_dbus_name)
 {
   size_t pos = icon_dbus_name.find_first_of("/");
-  return icon_dbus_name.substr(0, pos);
+  return pos != std::string::npos ? icon_dbus_name.substr(0, pos) : std::string();
 }
 
 static std::string get_icon_dbus_name_path(const std::string &icon_dbus_name)
 {
   size_t pos = icon_dbus_name.find_first_of("/");
-  return icon_dbus_name.substr(pos);
+  return pos != std::string::npos ? icon_dbus_name.substr(pos) : std::string();
 }
 
 std::string TrayDBus::get_icon_title(const std::string &icon_dbus_name)
@@ -400,13 +400,13 @@ struct SignalHandlerData {
 static int dbus_signal_handler(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
   printf("[dbus_signal_handler]\n");
-  char *arg;
+  char *arg = nullptr;
   SignalHandlerData *data = (SignalHandlerData *) userdata;
   int r = sd_bus_message_read(m, "s", &arg);
   if(r < 0) {
     debug << "DBus error. Failed read message " << strerror(-r) << std::endl;
   }
-  data->handler(arg);
+  data->handler(arg == nullptr ? std::string() : arg);
   return 0;
 }
 
@@ -424,7 +424,7 @@ bool TrayDBus::add_listener_full(const std::string &destination, const std::stri
       (void *)signal_handler_data
   );
   if(r < 0) {
-    debug << "DBus error. Failed connect to signal " << signal_name << " for "<< destination << "/" << path << " Error: " << strerror(-r) << std::endl;
+    debug_error << "DBus error. Failed connect to signal " << signal_name << " for "<< destination << "/" << path << " Error: " << strerror(-r) << std::endl;
     return false;
   }
   return true;

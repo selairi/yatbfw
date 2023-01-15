@@ -24,6 +24,36 @@ TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &t
   m_tray_dbus = tray_dbus;
   m_tray_icon_dbus_name = tray_icon_dbus_name;
   m_tray_icon_name = m_tray_dbus->get_icon_name(m_tray_icon_dbus_name);
+  bool ok = m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewToolTip", [=](const std::string &arg) {
+      printf("NewToolTip\n");
+      m_need_repaint = true;
+      send_repaint();
+      });
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewIcon", [=](const std::string &arg) {
+      printf("NewIcon\n");
+      m_need_repaint = true;
+      send_repaint();
+      });
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewAttentionIcon", [=](const std::string &arg) {
+      printf("NewAttentionIcon\n");
+      m_need_repaint = true;
+      send_repaint();
+      });
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewOverlayIcon", [=](const std::string &arg) {
+      printf("NewOverlayIcon\n");
+      m_need_repaint = true;
+      send_repaint();
+      });  
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewStatus", [=](const std::string &arg) {
+      printf("NewStatus\n");
+      m_need_repaint = true;
+      send_repaint();
+      });
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewTitle", [=](const std::string &arg) {
+      printf("NewTitle\n");
+      m_need_repaint = true;
+      send_repaint();
+      });
 }
 
 void TrayButton::set_fd(const std::vector<int> &fds)
@@ -60,15 +90,19 @@ void TrayButton::paint_pixmap(cairo_t *cr)
   int offset = (m_width > m_height ? m_height : m_width);
   int32_t w, h;
   uint8_t *bytes;
-  m_tray_dbus->get_icon_pixmap(m_tray_icon_dbus_name, offset, &w, &h, &bytes);
-  if(bytes != nullptr) {
+  bool ok = m_tray_dbus->get_icon_pixmap(m_tray_icon_dbus_name, offset, &w, &h, &bytes);
+  if(ok && bytes != nullptr) {
     offset--;
-    if(m_icon == nullptr) {
-      m_icon = cairo_image_surface_create_for_data(
-          bytes, CAIRO_FORMAT_ARGB32, w, h,
-          cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w)
-        );
+    if(m_icon != nullptr) {
+      cairo_surface_destroy(m_icon);
+      m_icon = nullptr;
     }
+    static const cairo_user_data_key_t key = {0};
+    m_icon = cairo_image_surface_create_for_data(
+        bytes, CAIRO_FORMAT_ARGB32, w, h,
+        cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w)
+    );
+    cairo_surface_set_user_data(m_icon, &key, bytes, (cairo_destroy_func_t)g_free);
     if(m_icon != nullptr) {
       cairo_save(cr);
       float scale = (float)offset/(float)h;
@@ -97,7 +131,6 @@ void TrayButton::mouse_clicked(int button)
     //popup = new_popup();
     //popup->show(m_x);
     std::vector<std::string> args = m_tray_dbus->get_menu_path(m_tray_icon_dbus_name);
-    printf("args.size: %d\n", args.size());
     if(args.size() < 2)
       m_tray_dbus->icon_context_menu(m_tray_icon_dbus_name, m_x, m_y);
     else {

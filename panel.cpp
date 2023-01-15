@@ -575,20 +575,22 @@ std::vector<int> Panel::get_fds()
 
 void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos)
 {
-  auto c = std::make_shared<TrayButton>(m_tray_dbus, tray_icon_dbus_name);
-  c->set_width(Settings::get_settings()->panel_size() - 1);
-  c->set_height(Settings::get_settings()->panel_size() - 1);
-  c->send_repaint = [&]() {
-    m_repaint_partial = true;
-  };
-  c->new_popup = [&]() -> std::shared_ptr<Popup> {
-    ToolTip::hide();
-    m_popup = std::make_shared<Popup>(&compositor, &display, &xdg_wm_base, &shm, &layer_shell_surface, &m_width, &m_height);
-    return m_popup;
-  };
-  c->set_start_pos(start_pos);
-  m_panel_items.push_back(c);
-  m_panel_tray_icons[tray_icon_dbus_name] = c;
+  if(! tray_icon_dbus_name.empty() && tray_icon_dbus_name != "/") {
+    auto c = std::make_shared<TrayButton>(m_tray_dbus, tray_icon_dbus_name);
+    c->set_width(Settings::get_settings()->panel_size() - 1);
+    c->set_height(Settings::get_settings()->panel_size() - 1);
+    c->send_repaint = [&]() {
+      m_repaint_partial = true;
+    };
+    c->new_popup = [&]() -> std::shared_ptr<Popup> {
+      ToolTip::hide();
+      m_popup = std::make_shared<Popup>(&compositor, &display, &xdg_wm_base, &shm, &layer_shell_surface, &m_width, &m_height);
+      return m_popup;
+    };
+    c->set_start_pos(start_pos);
+    m_panel_items.push_back(c);
+    m_panel_tray_icons[tray_icon_dbus_name] = c;
+  }
 }
 
 void Panel::remove_tray_icon(const std::string &tray_icon_dbus_name)

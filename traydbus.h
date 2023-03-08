@@ -44,6 +44,7 @@ public:
   void icon_activate(const std::string &icon_dbus_name, int32_t x, int32_t y);
   void icon_context_menu(const std::string &icon_dbus_name, int32_t x, int32_t y);
   bool get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefered_size, int32_t *width, int32_t *height, uint8_t **bytes);
+  bool get_tooltip(const std::string &icon_dbus_name, std::string &title, std::string &text);
   bool add_listener(const std::string &icon_dbus_name, const std::string &signal_name, std::function<void(const std::string &)> handler);
   bool add_listener_full(const std::string &destination, const std::string &path, const std::string interface, const std::string &signal_name, std::function<void(const std::string &)> handler);
 

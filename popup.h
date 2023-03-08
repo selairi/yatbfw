@@ -61,7 +61,7 @@ private:
   void create_wayland_surface(int offset);
 
 
-  // Object shared with Panel
+  // Objects shared with Panel
   compositor_t *m_compositor;
   display_t *m_display;
   xdg_wm_base_t *m_xdg_wm_base;

@@ -54,7 +54,7 @@ int main(int argn, char *argv[])
   // Set locale to show dates in the right format
   setlocale(LC_ALL, "");
   
-  signal(SIGSEGV, printstacktrace);
+  //signal(SIGSEGV, printstacktrace);
   Panel panel;
 
   Settings *settings = Settings::get_settings();

@@ -92,6 +92,7 @@ class shared_mem_t
       mem = mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
       if(mem == MAP_FAILED) { // NOLINT
         debug << "mmap failed: " << strerror(errno) << " len=" << len << " name=" << name << std::endl; 
+        mem = nullptr;
         throw std::runtime_error(std::string("[shared_mem::shared_mem] mmap failed: ") + std::string(strerror(errno)));
       }
     }

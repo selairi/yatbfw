@@ -61,7 +61,13 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     return;
 
   if(cairo_surface == nullptr) {
-    cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, m_width, m_height, /*stride*/ m_width*4);
+    if(shared_mem->get_mem() != nullptr)
+      cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, m_width, m_height, 
+          // /*stride*/ m_width*4
+          cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, m_width)
+      );
+    else
+      throw std::string("cairo_surface_status cannot be created.");
 
     if(cairo_surface_status(cairo_surface) == CAIRO_STATUS_SUCCESS) {
       debug << "New cairo_surface\n";
@@ -69,6 +75,7 @@ void Panel::draw(uint32_t serial, bool update_items_only)
       debug_error << "cairo_surface cannot be created: " 
         << cairo_status_to_string(cairo_surface_status(cairo_surface)) 
         << std::endl;
+      throw std::string("cairo_surface cannot be created");
     }
   }
 
@@ -76,6 +83,9 @@ void Panel::draw(uint32_t serial, bool update_items_only)
   Color background_color = Settings::get_settings()->background_color();
 
   cairo_t *cr = cairo_create(cairo_surface);
+  if(cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
+    throw std::string("cairo_t cannot be created.");
+  }
   cairo_set_source_rgba (cr, color.red, color.green, color.blue, 0);
   cairo_paint(cr);
 
@@ -446,7 +456,7 @@ void Panel::init()
         m_repaint_partial = true;
         //draw(serial, true);
       }
-    } else if(m_popup->get_surface() == m_pointer_last_surface_entered) {
+    } else if(m_popup != nullptr && m_popup->is_visible() && m_popup->get_surface() == m_pointer_last_surface_entered) {
       if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
         debug << "Button pressed\n";
         m_popup->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, button);
@@ -724,55 +734,3 @@ void Panel::draw_tooltip(int width, int height)
   debug << "draw finished\n";
 }
 
-void Panel::show_tooltip()
-{
-  int width = 50, height = 32;
-  if(tooltip_cairo_surface) {
-    tooltip_xdg_popup.proxy_release();
-    tooltip_xdg_positioner.proxy_release();
-    std::cout << "Eliminando buffer\n";
-    tooltip_buffer.at(0).proxy_release();
-    tooltip_buffer.at(1).proxy_release();
-    tooltip_xdg_surface.proxy_release();
-    tooltip_surface.proxy_release();
-    tooltip_shared_mem = nullptr;
-
-    debug_error << "Show tooltip" << std::endl << std::endl;;
-    //draw_tooltip(width, height);
-    return;
-  }
-
-  tooltip_surface = compositor.create_surface();
-  tooltip_xdg_surface = xdg_wm_base.get_xdg_surface(tooltip_surface);
-  tooltip_xdg_surface.on_configure() = [&] (uint32_t serial) { 
-    debug_error << "Tooltip" << std::endl;
-    int width = 50, height = 32;
-    if(!tooltip_shared_mem) {
-      tooltip_shared_mem = std::make_shared<shared_mem_t>(2*width*height*4);
-      auto pool = shm.create_pool(tooltip_shared_mem->get_fd(), 2*width*height*4);
-      for(unsigned int c = 0; c < 2; c++)
-        tooltip_buffer.at(c) = pool.create_buffer(c*width*height*4, width, height, width*4, shm_format::argb8888);
-    }
-    tooltip_xdg_surface.set_window_geometry(1920*0, 1260*0, width, height);
-    tooltip_xdg_surface.ack_configure(serial); 
-  };
-  tooltip_xdg_positioner = xdg_wm_base.create_positioner();
-  tooltip_xdg_positioner.set_size(width, height);
-  tooltip_xdg_positioner.set_anchor_rect(1920/2*0, 1260*0, m_width, m_height);
-  tooltip_xdg_positioner.set_anchor(xdg_positioner_anchor::top);
-  tooltip_xdg_popup = tooltip_xdg_surface.get_popup(nullptr, tooltip_xdg_positioner);
-  tooltip_xdg_popup.on_configure() = [&] (int32_t x, int32_t y, int32_t w, int32_t h) {
-    debug_error << "popup: x:" << x << " y:" << y << " w:" << w << " h:" << h << std::endl;
-    //tooltip_xdg_surface.set_window_geometry(x, y, w, h);
-    draw_tooltip(w, h);
-  };
-  tooltip_xdg_popup.on_popup_done() = [&] () {
-    std::cout << "Popup done\n";
-  };
-  layer_shell_surface.get_popup(tooltip_xdg_popup);
-
-  tooltip_surface.commit();
-  display.roundtrip();
-  std::cout << "Draw tooltip\n";
-  draw_tooltip(width, height);
-}

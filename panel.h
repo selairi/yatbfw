@@ -69,7 +69,6 @@ public:
      const std::string & exec, bool start_pos = true);
   void add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos);
   void remove_tray_icon(const std::string &tray_icon_dbus_name);
-  void show_tooltip();
 
 
 private:

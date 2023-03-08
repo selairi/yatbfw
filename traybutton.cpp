@@ -28,6 +28,8 @@ TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &t
       printf("NewToolTip\n");
       m_need_repaint = true;
       send_repaint();
+      std::string title, text;
+      m_tray_dbus->get_tooltip(m_tray_icon_dbus_name, title, text);
       });
   m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewIcon", [=](const std::string &arg) {
       printf("NewIcon\n");
@@ -117,7 +119,12 @@ void TrayButton::paint_pixmap(cairo_t *cr)
 
 void TrayButton::mouse_enter()
 {
-  std::string text = m_tray_dbus->get_icon_title(m_tray_icon_dbus_name);
+  std::string title, text;
+  m_tray_dbus->get_tooltip(m_tray_icon_dbus_name, title, text);
+  if(title.empty() && text.empty())
+    text = m_tray_dbus->get_icon_title(m_tray_icon_dbus_name);
+  else
+    text = title + "\n" + text;
   show_tooltip(text);
 }
 

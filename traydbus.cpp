@@ -312,6 +312,46 @@ void TrayDBus::icon_context_menu(const std::string &icon_dbus_name, int32_t x, i
   }
 }
 
+bool TrayDBus::get_tooltip(const std::string &icon_dbus_name, std::string &title, std::string &text)
+{
+  sd_bus_message *m = nullptr;
+  sd_bus_error error = SD_BUS_ERROR_NULL;
+  int r = sd_bus_get_property(m_bus,
+      get_icon_dbus_name_destination(icon_dbus_name).c_str(),
+      get_icon_dbus_name_path(icon_dbus_name).c_str(),
+      "org.kde.StatusNotifierItem",
+      "ToolTip",
+      &error,
+      &m,
+      "(sa(iiay)ss)");
+
+  if(r < 0) {
+    debug_error << "DBus error. Failed to connect to " << icon_dbus_name << " ToolTip: " << strerror(-r) << std::endl;
+    return false;
+  }
+  // Open reply as array of type "a(iiay)"
+  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_STRUCT, "sa(iiay)ss");
+  char *buffer_text = nullptr;
+  r = sd_bus_message_read(m, "s", &buffer_text);
+  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "iiay");
+  int32_t w, h;
+  r = sd_bus_message_read(m, "ii", &w, &h);
+  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "y");
+  int size = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w) * h;
+  if(w < 0 || h < 0) size = 0;
+  for(int n = 0; n < size && r > 0; n++) {
+    int8_t byte;
+    r = sd_bus_message_read(m, "y", &byte);
+  }
+  buffer_text = nullptr;
+  r = sd_bus_message_read(m, "s", &buffer_text);
+  if(buffer_text != nullptr) title = std::string(buffer_text);
+  buffer_text = nullptr;
+  r = sd_bus_message_read(m, "s", &buffer_text);
+  if(buffer_text != nullptr) text = std::string(buffer_text);
+  return true;
+}
+
 bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefered_size, int32_t *width, int32_t *height, uint8_t **bytes)
 {
   *width = *height = -1;
@@ -328,7 +368,7 @@ bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefer
       "a(iiay)");
 
   if(r < 0) {
-    debug << "DBus error. Failed to connect to " << icon_dbus_name << " IconPixmap: " << strerror(-r) << std::endl;
+    debug_error << "DBus error. Failed to connect to " << icon_dbus_name << " IconPixmap: " << strerror(-r) << std::endl;
     remove_tray_icon(icon_dbus_name);
     return false;
     //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));

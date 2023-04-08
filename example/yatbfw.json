@@ -53,6 +53,10 @@
    *        "no_text" : "empty", // The battery level label can be removed
    *        "exec" : "qps"
    *      }
+   *  - tray: Shows tray icons.
+   *      {
+   *        "type" : "tray"
+   *      }
    */
    /* "start_items" and "end_items" are list of items that will be placed at start or end of the panel.
     */
@@ -74,6 +78,9 @@
       "type" : "clock",
       "time_format" : "%H:%M",
       "exec" : "zenity --calendar --text= --title=`date +%Y-%m-%d`"
+    },
+    {
+      "type" : "tray"
     },
     {
       "type" : "battery",

@@ -276,7 +276,7 @@ void Icon::paint(cairo_t *cr, uint32_t x, uint32_t y, uint32_t width, uint32_t h
     float scale = (float)height/(float)m_icon_height;
     debug << "png icon x:" << x << " y:" << y << " scale:" << scale << std::endl;
     cairo_scale(cr, (float)height/(float)m_icon_width, scale);
-    cairo_set_source_surface(cr, m_icon, x/scale, y/scale);
+    cairo_set_source_surface(cr, m_icon, (float)x/scale, (float)y/scale);
     cairo_paint(cr);
     cairo_restore(cr);
   }

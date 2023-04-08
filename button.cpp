@@ -88,8 +88,8 @@ void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text
     cairo_text_extents_t extents;
     cairo_text_extents(cr, line.c_str(), &extents);
     if(text_width < extents.width)
-      text_width = extents.width + 6;
-    height += extents.height;
+      text_width = (int)extents.width + 6;
+    height += (int)extents.height;
   }
 
   cairo_save(cr);
@@ -98,15 +98,15 @@ void Button::draw_text(cairo_t *cr, int x_offset, int y_offset, std::string text
 
   int sep = 0;
   if(text_height > height)
-    sep = (text_height - height) / (lines.size() + 1);
+    sep = (text_height - height) / ((int)lines.size() + 1);
   int y = m_y + y_offset + sep;
   for(std::string line : lines) {
     cairo_text_extents_t extents;
     cairo_text_extents(cr, line.c_str(), &extents);
-    width = extents.width + 6;
+    width = (int)extents.width + 6;
     cairo_move_to(cr, m_x + x_offset + (text_width - width) / 2.0, y + extents.height);
     cairo_show_text(cr, line.c_str());
-    y += extents.height + sep;
+    y += (int)extents.height + sep;
   }
   cairo_restore(cr);
 
@@ -126,7 +126,7 @@ void Button::paint(cairo_t *cr)
   // Draws icon
   if(m_icon_ref != nullptr) {
     offset = (m_width > m_height ? m_height : m_width);
-    m_icon_ref->paint(cr, m_x, m_y, offset - 1, offset - 1);
+    m_icon_ref->paint(cr, (uint32_t)m_x, (uint32_t)m_y, (uint32_t)(offset - 1), (uint32_t)(offset - 1));
   }
 
   if(! m_text.empty())
@@ -154,7 +154,7 @@ void Button::update_size(cairo_t *cr)
       cairo_text_extents_t extents;
       cairo_text_extents(cr, line.c_str(), &extents);
       if(text_width < extents.width)
-        text_width = extents.width + 6;
+        text_width = (int)extents.width + 6;
       //text_height += extents.height;
     }
     //int sep = (offset - text_height) / (lines.size() + 1);

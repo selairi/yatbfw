@@ -61,7 +61,7 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
     if(icon.empty()) {
       // Change id of icon to lower case (icons are saved as lower case files)
       std::string mod_id = id;
-      for(char &ch : mod_id) {ch = std::tolower(ch);}
+      for(char &ch : mod_id) {ch = (char)std::tolower(ch);}
       icon = suggested_icon_for_id(mod_id);
       debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
     }
@@ -76,7 +76,7 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
       if(icon.empty()) {
         // Sometimes id is in D-BUS format: xx.xx.id, where id is in PascalCase
         // Change id of icon to lower case (icons are saved as lower case files)
-        for(char &ch : mod_id) {ch = std::tolower(ch);}
+        for(char &ch : mod_id) {ch = (char)std::tolower(ch);}
         icon = suggested_icon_for_id(mod_id);
         debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
       }
@@ -92,7 +92,7 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
       if(icon.empty()) {
         // Sometimes id is in D-BUS format: xx.xx.id, where id is in PascalCase
         // Change id of icon to lower case (icons are saved as lower case files)
-        for(char &ch : mod_id) {ch = std::tolower(ch);}
+        for(char &ch : mod_id) {ch = (char)std::tolower(ch);}
         icon = suggested_icon_for_id(mod_id);
         debug << "\ticon for id: " << mod_id << " icon: >" << icon << "<" << std::endl;
       }
@@ -114,7 +114,7 @@ ToplevelButton::ToplevelButton(wayland::zwlr_foreign_toplevel_handle_v1_t toplev
   m_toplevel_handle.on_output_enter() =[&](wayland::output_t output) {
     m_output = output;
   };
-  m_toplevel_handle.on_output_leave() =[&](wayland::output_t output) {
+  m_toplevel_handle.on_output_leave() =[&](wayland::output_t /*output*/) {
   };
   m_toplevel_handle.on_state() =[&](wayland::array_t state) {
     m_state = state;

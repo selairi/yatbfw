@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21) 
 project (yatbfw VERSION 0.1)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(tray)
 add_subdirectory(dbusmenu-cmd)
@@ -40,6 +40,7 @@ add_executable(yatbfw
   toplevelbutton.cpp
   clock.cpp
   battery.cpp
+  tray.cpp
   traybutton.cpp
   traydbus.cpp
   settings.cpp

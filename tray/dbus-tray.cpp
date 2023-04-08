@@ -43,7 +43,7 @@ struct Items {
   void append(char *item) {
     if(! in(item)) {
       items_length++;
-      char **p = (char **) realloc(items, sizeof(char *) * items_length);
+      char **p = (char **) realloc(items, sizeof(char *) * (uint8_t)items_length);
       if(p != nullptr) items = p;
       items[items_length - 2] = item;
       items[items_length - 1] = nullptr;
@@ -58,7 +58,7 @@ struct Items {
         if(item == items[n] || !strcmp(items[n], item)) {
           items_length--;
           for(int i = n; i < items_length; i++) items[i] = items[i + 1];
-          char **p = (char **) realloc(items, sizeof(char *) * items_length);
+          char **p = (char **) realloc(items, sizeof(char *) * (uint8_t)items_length);
           if(p != nullptr) items = p;
           break;
         }
@@ -95,7 +95,7 @@ struct DBusData {
 
 /** Handler to remove item from DBusData::items when DBus object is delected.
  */
-static int track_item_handler(sd_bus_track *track, void *userdata) {
+static int track_item_handler(sd_bus_track * /*track*/, void *userdata) {
   DBusData *dbus_data = (DBusData *) userdata;
   printf("Track Item handler: ");
   if(dbus_data->track_item) {
@@ -119,7 +119,7 @@ static int track_item_handler(sd_bus_track *track, void *userdata) {
 
 /** Handler to remove host from DBusData::host_name when DBus object is delected.
  */
-static int track_host_handler(sd_bus_track *track, void *userdata) {
+static int track_host_handler(sd_bus_track * /*track*/, void *userdata) {
   DBusData *dbus_data = (DBusData *) userdata;
   printf("Track Host handler: ");
   if(dbus_data->track_host && dbus_data->is_host_name_registered()) {
@@ -136,7 +136,7 @@ static int track_host_handler(sd_bus_track *track, void *userdata) {
   return 1;
 }
 
-static int handle_register_status_notifier_item(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int handle_register_status_notifier_item(sd_bus_message *m, void *userdata, sd_bus_error * /*ret_error*/) {
   DBusData *dbus_data = (DBusData *) userdata;
   char *item_name = nullptr;
   int r = sd_bus_message_read(m, "s", &item_name);
@@ -217,9 +217,9 @@ static int handle_register_status_notifier_host(sd_bus_message *m, void *userdat
   return sd_bus_reply_method_return(m, "");
 }
 
-static int get_property(sd_bus *bus, const char *path, const char *interface, const char *property, sd_bus_message *reply, void *userdata, sd_bus_error *ret_error) {
+static int get_property(sd_bus  * /*bus*/, const char * /*path*/, const char * /*interface*/, const char *property, sd_bus_message *reply, void *userdata, sd_bus_error * /*ret_error*/) {
   DBusData *dbus_data = (DBusData *) userdata;
-  int r;
+  int r = 1;
   printf("Property: %s\n", property);
   if(! strcmp("ProtocolVersion", property))
     r = sd_bus_message_append(reply, "u", 0);
@@ -258,7 +258,7 @@ static void finish(sd_bus *bus, sd_bus_slot *slot) {
 }
 
 int main(int argc, char *argv[]) {
-  int parent_pid = getppid();
+  //int parent_pid = getppid();
   for(int n = 1; n < argc; n++) {
     if(!strcmp(argv[n], "--help")) {
       printf("This is a simple StatusNotifierWatcher daemon.\n");

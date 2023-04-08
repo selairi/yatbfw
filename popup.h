@@ -51,7 +51,7 @@ public:
   
   void paint(cairo_t *cr, bool update_items_only = false);
 
-  void on_mouse_enter(uint32_t x, uint32_t y);
+  void on_mouse_enter(int x, int y);
   void on_mouse_leave(int x, int y, bool leave);
   void on_mouse_clicked(int x, int y, int button);
   void on_mouse_released(int x, int y);

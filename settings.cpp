@@ -105,7 +105,7 @@ Settings::Settings()
   m_font = "Helvetica";
   m_font_size = 20;
   m_color = {.red = 0.0, .green = 0.0, .blue = 0.0};
-  m_background_color = {.red = 0.9, .green = 0.9, .blue = 1.0};
+  m_background_color = {.red = 0.9f, .green = 0.9f, .blue = 1.0f};
   m_panel_size = 33;
   m_panel_position = PanelPosition::BOTTOM;
   m_exclusive_zone = m_panel_size;
@@ -125,6 +125,8 @@ static void load_items(const Json::Value &items, Panel *panel, bool start_pos)
       std::string exec = item.get("exec", "").asString();
       std::string format = item.get("time_format", "").asString();
       panel->add_clock(icon, format, exec, start_pos);
+    } else if(item.get("type", "").asString() == std::string("tray")) {
+      panel->add_tray(start_pos);
     } else if(item.get("type", "").asString() == std::string("battery")) {
       std::string icon = item.get("icon", "").asString();
       std::string exec = item.get("exec", "").asString();
@@ -198,8 +200,8 @@ void Settings::load_settings(const std::string & path, Panel *panel)
     m_background_color.green = background_color[1].asFloat();
     m_background_color.blue = background_color[2].asFloat();
   } else {
-    m_background_color.red = 0.9;
-    m_background_color.green = 0.9;
+    m_background_color.red = 0.9f;
+    m_background_color.green = 0.9f;
     m_background_color.blue = 1;
   }
 

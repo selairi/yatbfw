@@ -82,7 +82,7 @@ class shared_mem_t
       }
 
       // set size
-      if(ftruncate(fd, size) < 0) {
+      if(ftruncate(fd, (off_t) size) < 0) {
         debug << "ftruncate failed." << std::endl;
         throw std::runtime_error("ftruncate failed.");
       }

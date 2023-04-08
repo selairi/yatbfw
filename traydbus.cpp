@@ -17,6 +17,13 @@
 #include "traydbus.h"
 #include <cairo.h>
 
+struct Guard_sd_bus_message {
+  sd_bus_message *m;
+  Guard_sd_bus_message() { m = nullptr; }
+  ~Guard_sd_bus_message() { if(m != nullptr) sd_bus_message_unref(m); }
+};
+
+
 TrayDBus::TrayDBus()
 {
   m_slot = nullptr;
@@ -30,14 +37,16 @@ TrayDBus::~TrayDBus()
 }
 
 
-void TrayDBus::finish() {
+void TrayDBus::finish() 
+{
   sd_bus_slot_unref(m_slot);
   sd_bus_unref(m_bus);
 }
 
 
-static int get_property(sd_bus *bus, const char *path, const char *interface, const char *property, sd_bus_message *reply, void *userdata, sd_bus_error *ret_error) {
-  int r;
+static int get_property(sd_bus * /*bus*/, const char * /*path*/, const char * /*interface*/, const char *property, sd_bus_message *reply, void * /*userdata*/, sd_bus_error * /*ret_error*/) 
+{
+  int r = -1;
   printf("Property: %s\n", property);
   if(! strcmp("ProtocolVersion", property))
     r = sd_bus_message_append(reply, "u", 0);
@@ -56,7 +65,7 @@ void TrayDBus::init()
 {
   debug << "Starting DBus" << std::endl;
   sd_bus_error error = SD_BUS_ERROR_NULL;
-  sd_bus_message *m = nullptr;
+  m_bus = nullptr;
   m_interface_name = "org.kde.StatusNotifierHost";
   m_interface_name += std::to_string(getpid());
   int r = sd_bus_open_user(&m_bus);
@@ -71,21 +80,23 @@ void TrayDBus::init()
   // Init StatusNotifierHost service.
   r = sd_bus_add_object_vtable(m_bus,
       &m_slot,
-      "/StatusNotifierHost",  // object path 
-      m_interface_name.c_str(),   // interface name 
+      "/StatusNotifierHost",    // object path 
+      m_interface_name.c_str(), // interface name 
       watcher_vtable,
       this);
   if(r < 0) {
     finish();
-    debug << "DBus error. " << m_interface_name << " Failed to issue method call: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to issue method call: ") + std::string(strerror(-r));
+    debug_error << "DBus error. " << m_interface_name << " Failed to issue method call: " << strerror(-r) << std::endl;
+    //throw debug_get_func + std::string("DBus error. Failed to issue method call: ") + std::string(strerror(-r));
+    exit(1);
   }
 
   r = sd_bus_request_name(m_bus, m_interface_name.c_str(), 0);
   if (r < 0) {
     finish();
-    debug << "DBus error. Failed to acquire service name: " << strerror(-r) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to acquire service name :") + std::string(strerror(-r));
+    debug_error << "DBus error. Failed to acquire service name: " << strerror(-r) << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. Failed to acquire service name :") + std::string(strerror(-r));
   }
 
   // Check for StatusNotifierWatcher
@@ -100,24 +111,27 @@ void TrayDBus::init()
         );
     if(r < 0) {
       finish();
-      debug << "DBus error. Failed to connect to StatusNotifierWatcher: " << strerror(-r) << std::endl;
-      throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierWatcher: ") + std::string(strerror(-r));
+      debug_error << "DBus error. Failed to connect to StatusNotifierWatcher: " << strerror(-r) << std::endl;
+      exit(1);
+      //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierWatcher: ") + std::string(strerror(-r));
     }
     if(res == 0) {
       // Register StatusNotifierHost
+      Guard_sd_bus_message m;
       r = sd_bus_call_method(m_bus,
           "org.kde.StatusNotifierWatcher",
           "/StatusNotifierWatcher",
           "org.kde.StatusNotifierWatcher",
           "RegisterStatusNotifierHost",
           &error,
-          &m,
+          &m.m,
           "s",
           m_interface_name.c_str());
       if(r < 0) {
         finish();
-        debug << "DBus error. Failed to connect to RegisterStatusNotifierHost: " << strerror(-r) << std::endl;
-        throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierWatcher: ") + std::string(strerror(-r));
+        debug_error << "DBus error. Failed to connect to RegisterStatusNotifierHost: " << strerror(-r) << std::endl;
+        exit(1);
+        //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierWatcher: ") + std::string(strerror(-r));
       }
     }
   }
@@ -151,7 +165,7 @@ void TrayDBus::init()
         "/StatusNotifierWatcher",
         "org.kde.StatusNotifierWatcher",
         "StatusNotifierItemRegistered",
-        [=](const std::string &item_name) {
+        [this](const std::string &item_name) {
             add_tray_icon(item_name);
           }
         );
@@ -160,7 +174,7 @@ void TrayDBus::init()
         "/StatusNotifierWatcher",
         "org.kde.StatusNotifierWatcher",
         "StatusNotifierItemUnregistered",
-        [=](const std::string &item_name) {
+        [this](const std::string &item_name) {
             remove_tray_icon(item_name);
           }
         );
@@ -171,8 +185,9 @@ void TrayDBus::init()
     r = sd_bus_process(m_bus, nullptr);
     if (r < 0) {
       finish();
-      debug << std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r)) << std::endl;
-      throw debug_get_func + std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r));
+      debug_error << std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r)) << std::endl;
+      exit(1);
+      //throw debug_get_func + std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r));
     }
   }
   r = sd_bus_wait(m_bus, (uint64_t) -1);
@@ -180,39 +195,61 @@ void TrayDBus::init()
 
 int TrayDBus::get_fd()
 {
-  if(m_bus != nullptr) {
-    int fd = sd_bus_get_fd(m_bus);
-    return fd;
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
   }
-  return -1;
+  int fd = sd_bus_get_fd(m_bus);
+  if(fd < 0) {
+    debug_error << "DBus fd cannot be read." << std::endl;
+    exit(1);
+    //throw debug_get_func + "DBus fd cannot be read.";
+  }
+  return fd;
 }
 
 void TrayDBus::init_struct_pollfd(struct pollfd &fds)
 {
-  if(m_bus != nullptr) {
-    fds.fd = sd_bus_get_fd(m_bus);
-    int events = sd_bus_get_events(m_bus);
-    if(events >= 0)
-      fds.events = POLLIN; //sd_bus_get_events(m_bus);
-    else {
-      debug << "DBus events cannot be read." << std::endl;
-      throw debug_get_func + "DBus events cannot be read.";
-    }
-    fds.revents = 0;
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
   }
+  fds.fd = sd_bus_get_fd(m_bus);
+  if(fds.fd < 0) {
+    debug_error << "DBus fd cannot be read." << std::endl;
+    exit(1);
+    //throw debug_get_func + "DBus fd cannot be read.";
+  }
+  int events = sd_bus_get_events(m_bus);
+  if(events >= 0)
+    fds.events = POLLIN; //sd_bus_get_events(m_bus);
+  else {
+    debug_error << "DBus events cannot be read." << std::endl;
+    exit(1);
+    //throw debug_get_func + "DBus events cannot be read.";
+  }
+  fds.revents = 0;
 }
 
 
 void TrayDBus::process_poll_event(struct pollfd &fds)
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   // Process DBus events
   int r = sd_bus_process(m_bus, nullptr);
   if (r < 0) {
     finish();
-    debug << std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r)) << std::endl;
-    throw debug_get_func + std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r));
+    debug_error << std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r)) << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. Failed to process bus: ")+ std::string(strerror(-r));
   }
-  fds.events = sd_bus_get_events(m_bus);
+  fds.events = (short)sd_bus_get_events(m_bus);
   fds.revents = 0;
 }
 
@@ -230,6 +267,11 @@ static std::string get_icon_dbus_name_path(const std::string &icon_dbus_name)
 
 std::string TrayDBus::get_icon_title(const std::string &icon_dbus_name)
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   char *res;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_get_property_string(m_bus, 
@@ -239,7 +281,7 @@ std::string TrayDBus::get_icon_title(const std::string &icon_dbus_name)
       "Title",
       &error, &res);
   if(r < 0) {
-    debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
+    debug_error << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
     remove_tray_icon(icon_dbus_name);
     return std::string();
     //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
@@ -251,6 +293,11 @@ std::string TrayDBus::get_icon_title(const std::string &icon_dbus_name)
 
 std::string TrayDBus::get_icon_name(const std::string &icon_dbus_name)
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   char *res;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_get_property_string(m_bus, 
@@ -260,7 +307,7 @@ std::string TrayDBus::get_icon_name(const std::string &icon_dbus_name)
       "IconName",
       &error, &res);
   if(r < 0) {
-    debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
+    debug_error << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
     remove_tray_icon(icon_dbus_name);
     return std::string();
     //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
@@ -272,7 +319,12 @@ std::string TrayDBus::get_icon_name(const std::string &icon_dbus_name)
 
 void TrayDBus::icon_activate(const std::string &icon_dbus_name, int32_t x, int32_t y)
 {
-  sd_bus_message *m = nullptr;
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
+  Guard_sd_bus_message m;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_call_method(m_bus,
       get_icon_dbus_name_destination(icon_dbus_name).c_str(),
@@ -280,12 +332,12 @@ void TrayDBus::icon_activate(const std::string &icon_dbus_name, int32_t x, int32
       "org.kde.StatusNotifierItem",
       "Activate",
       &error,
-      &m,
+      &m.m,
       "ii",
       x, y);
 
   if(r < 0) {
-    debug << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
+    debug_error << "DBus error. Failed to connect to " << icon_dbus_name << " StatusNotifierItem: " << strerror(-r) << std::endl;
     remove_tray_icon(icon_dbus_name);
     //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
@@ -293,7 +345,12 @@ void TrayDBus::icon_activate(const std::string &icon_dbus_name, int32_t x, int32
 
 void TrayDBus::icon_context_menu(const std::string &icon_dbus_name, int32_t x, int32_t y)
 {
-  sd_bus_message *m = nullptr;
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
+  Guard_sd_bus_message m;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_call_method(m_bus,
       get_icon_dbus_name_destination(icon_dbus_name).c_str(),
@@ -301,7 +358,7 @@ void TrayDBus::icon_context_menu(const std::string &icon_dbus_name, int32_t x, i
       "org.kde.StatusNotifierItem",
       "ContextMenu",
       &error,
-      &m,
+      &m.m,
       "ii",
       x, y);
 
@@ -314,7 +371,12 @@ void TrayDBus::icon_context_menu(const std::string &icon_dbus_name, int32_t x, i
 
 bool TrayDBus::get_tooltip(const std::string &icon_dbus_name, std::string &title, std::string &text)
 {
-  sd_bus_message *m = nullptr;
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
+  Guard_sd_bus_message m;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_get_property(m_bus,
       get_icon_dbus_name_destination(icon_dbus_name).c_str(),
@@ -322,7 +384,7 @@ bool TrayDBus::get_tooltip(const std::string &icon_dbus_name, std::string &title
       "org.kde.StatusNotifierItem",
       "ToolTip",
       &error,
-      &m,
+      &m.m,
       "(sa(iiay)ss)");
 
   if(r < 0) {
@@ -330,33 +392,38 @@ bool TrayDBus::get_tooltip(const std::string &icon_dbus_name, std::string &title
     return false;
   }
   // Open reply as array of type "a(iiay)"
-  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_STRUCT, "sa(iiay)ss");
+  r = sd_bus_message_enter_container(m.m, SD_BUS_TYPE_STRUCT, "sa(iiay)ss");
   char *buffer_text = nullptr;
-  r = sd_bus_message_read(m, "s", &buffer_text);
-  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "iiay");
+  r = sd_bus_message_read(m.m, "s", &buffer_text);
+  r = sd_bus_message_enter_container(m.m, SD_BUS_TYPE_ARRAY, "iiay");
   int32_t w, h;
-  r = sd_bus_message_read(m, "ii", &w, &h);
-  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "y");
+  r = sd_bus_message_read(m.m, "ii", &w, &h);
+  r = sd_bus_message_enter_container(m.m, SD_BUS_TYPE_ARRAY, "y");
   int size = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w) * h;
   if(w < 0 || h < 0) size = 0;
   for(int n = 0; n < size && r > 0; n++) {
     int8_t byte;
-    r = sd_bus_message_read(m, "y", &byte);
+    r = sd_bus_message_read(m.m, "y", &byte);
   }
   buffer_text = nullptr;
-  r = sd_bus_message_read(m, "s", &buffer_text);
+  r = sd_bus_message_read(m.m, "s", &buffer_text);
   if(buffer_text != nullptr) title = std::string(buffer_text);
   buffer_text = nullptr;
-  r = sd_bus_message_read(m, "s", &buffer_text);
+  r = sd_bus_message_read(m.m, "s", &buffer_text);
   if(buffer_text != nullptr) text = std::string(buffer_text);
   return true;
 }
 
 bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefered_size, int32_t *width, int32_t *height, uint8_t **bytes)
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   *width = *height = -1;
   *bytes = nullptr;
-  sd_bus_message *m = nullptr;
+  Guard_sd_bus_message m;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   int r = sd_bus_get_property(m_bus,
       get_icon_dbus_name_destination(icon_dbus_name).c_str(),
@@ -364,7 +431,7 @@ bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefer
       "org.kde.StatusNotifierItem",
       "IconPixmap",
       &error,
-      &m,
+      &m.m,
       "a(iiay)");
 
   if(r < 0) {
@@ -374,41 +441,52 @@ bool TrayDBus::get_icon_pixmap(const std::string &icon_dbus_name, int32_t prefer
     //throw debug_get_func + std::string("DBus error. Failed to connect to StatusNotifierItem: ") + std::string(strerror(-r));
   }
   // Open reply as array of type "a(iiay)"
-  r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "(iiay)");
+  r = sd_bus_message_enter_container(m.m, SD_BUS_TYPE_ARRAY, "(iiay)");
   // Read array elements
-  while(sd_bus_message_enter_container(m, SD_BUS_TYPE_STRUCT, "iiay") >= 0) {
+  while(sd_bus_message_enter_container(m.m, SD_BUS_TYPE_STRUCT, "iiay") >= 0) {
     int32_t w, h, min;
-    r = sd_bus_message_read(m, "ii", &w, &h);
+    r = sd_bus_message_read(m.m, "ii", &w, &h);
     min = w > h ? h : w;
     if(r >= 0) {
-      r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "y");
-      int size = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w) * h;
-      uint8_t *array_bytes = (uint8_t *) malloc(size);
-      for(int n = 0; n < size; n+=4) {
-        uint8_t alpha, r, g, b;
-        r = sd_bus_message_read(m, "yyyy", &alpha, &r, &g, &b);
-        array_bytes[n] = r;
-        array_bytes[n + 1] = g;
-        array_bytes[n + 2] = b;
-        array_bytes[n + 3] = alpha;
+      r = sd_bus_message_enter_container(m.m, SD_BUS_TYPE_ARRAY, "y");
+      if(r >= 0) {
+        int size = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w) * h;
+        uint8_t *array_bytes = (uint8_t *) malloc((size_t)size);
+        for(int n = 0; n < size; n+=4) {
+          uint8_t alpha, red, green, blue;
+          r = sd_bus_message_read(m.m, "yyyy", &alpha, &red, &green, &blue);
+          if(r >= 0) {
+            array_bytes[n] = red;
+            array_bytes[n + 1] = green;
+            array_bytes[n + 2] = blue;
+            array_bytes[n + 3] = alpha;
+          }
+        }
+
+        int min_selected_size = *width > *height ? *height : *width;
+        if( (min >= prefered_size && min_selected_size > min ) || *width < 0) {
+          *width = w;
+          *height = h;
+          *bytes = array_bytes;
+        }
       }
-      int min_selected_size = *width > *height ? *height : *width;
-      if(min >= prefered_size && min_selected_size > min || *width < 0) {
-        *width = w;
-        *height = h;
-        *bytes = array_bytes;
-      }
+    } else { 
+      return r >= 0;
     }
-    sd_bus_message_exit_container(m);
+    sd_bus_message_exit_container(m.m);
   }
-  sd_bus_message_unref(m);
   return r >= 0;
 }
 
 std::vector<std::string> TrayDBus::get_menu_path(const std::string &icon_dbus_name) 
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   std::vector<std::string> path;
-  sd_bus_message *m = nullptr;
+  Guard_sd_bus_message m;
   sd_bus_error error = SD_BUS_ERROR_NULL;
   char *object_path = nullptr;
   int r = sd_bus_get_property(m_bus,
@@ -417,12 +495,12 @@ std::vector<std::string> TrayDBus::get_menu_path(const std::string &icon_dbus_na
       "org.kde.StatusNotifierItem",
       "Menu",
       &error,
-      &m,
+      &m.m,
       "o");
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " Menu: " << strerror(-r) << std::endl;
   } else {
-    r = sd_bus_message_read(m, "o", &object_path);
+    r = sd_bus_message_read(m.m, "o", &object_path);
     if(r < 0) {
       debug << "DBus error. Failed read message connect to " << icon_dbus_name << " Menu: " << strerror(-r) << std::endl;
     } else {
@@ -437,7 +515,7 @@ struct SignalHandlerData {
   std::function<void(const std::string &)> handler;
 };
 
-static int dbus_signal_handler(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+static int dbus_signal_handler(sd_bus_message *m, void *userdata, sd_bus_error * /*ret_error*/)
 {
   printf("[dbus_signal_handler]\n");
   char *arg = nullptr;
@@ -452,6 +530,11 @@ static int dbus_signal_handler(sd_bus_message *m, void *userdata, sd_bus_error *
 
 bool TrayDBus::add_listener_full(const std::string &destination, const std::string &path, const std::string interface, const std::string &signal_name, std::function<void(const std::string &)> handler)
 {
+  if(m_bus == nullptr) {
+    debug_error << "DBus error. m_bus == nullptr"  << std::endl;
+    exit(1);
+    //throw debug_get_func + std::string("DBus error. m_bus == nullptr");  
+  }
   printf("Destination: %s Path: %s\n", destination.c_str(), path.c_str());
   SignalHandlerData *signal_handler_data = new SignalHandlerData();
   signal_handler_data->handler = handler;

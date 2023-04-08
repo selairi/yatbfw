@@ -29,6 +29,7 @@
 #include "toplevelbutton.h"
 #include "tooltip.h"
 #include "traydbus.h"
+#include "tray.h"
 #include "popup.h"
 #include <memory>
 using namespace wayland;
@@ -67,6 +68,7 @@ public:
      const std::string & icon_battery_charged, 
      bool no_text,
      const std::string & exec, bool start_pos = true);
+  void add_tray(bool start_pos = true);
   void add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos);
   void remove_tray_icon(const std::string &tray_icon_dbus_name);
 
@@ -102,23 +104,13 @@ private:
   output_t output;
   cairo_surface_t *cairo_surface;
 
-  // Tooltip objects
-  surface_t tooltip_surface;
-  xdg_surface_t tooltip_xdg_surface;
-  xdg_positioner_t tooltip_xdg_positioner;
-  xdg_popup_t tooltip_xdg_popup;
-  std::shared_ptr<shared_mem_t> tooltip_shared_mem;
-  std::array<buffer_t, 2> tooltip_buffer;
-  cairo_surface_t *tooltip_cairo_surface;
-  void draw_tooltip(int width, int height);
-
   uint32_t m_width, m_height;
   std::vector<std::shared_ptr<PanelItem> > m_panel_items;
   std::vector<std::shared_ptr<PanelItem> > m_panel_items_delete_later;
   std::map<std::string,std::shared_ptr<PanelItem> > m_panel_tray_icons;
-  uint32_t m_last_cursor_x, m_last_cursor_y;
+  int32_t m_last_cursor_x, m_last_cursor_y;
   surface_t m_pointer_last_surface_entered;
-  uint32_t m_toplevel_items_offset;
+  int32_t m_toplevel_items_offset;
 
   std::shared_ptr<shared_mem_t> shared_mem;
   std::array<buffer_t, 2> buffer;
@@ -128,6 +120,7 @@ private:
   
   ToolTip tooltip;
   std::shared_ptr<Popup> m_popup;
+  std::shared_ptr<Tray> m_tray;
 
   bool running;
   bool has_pointer;

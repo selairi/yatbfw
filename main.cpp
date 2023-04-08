@@ -23,10 +23,10 @@
 #include <execinfo.h>
 #include <locale.h>
 
-void printstacktrace(int sig)
+void printstacktrace(int  /*sig*/)
 {
   void *array[10];
-  size_t size;
+  int size;
 
   fprintf(stderr, "Printing backtrace:\n");
 
@@ -91,14 +91,16 @@ int main(int argn, char *argv[])
     }
   }
 
- // try {
+  while(true) {
+    // try {
     panel.init();
     // Run events loop
     panel.run();
-  //} catch(const std::exception& e) {
-  //  std::cerr << "Exception launched:" << std::endl;
-  //  std::cerr << e.what() << std::endl;
-  //  printstacktrace(0);
-  //}
+    //} catch(const std::exception& e) {
+    //  std::cerr << "Exception launched:" << std::endl;
+    //  std::cerr << e.what() << std::endl;
+    //  printstacktrace(0);
+    //}
+  }
   return 0;
 }

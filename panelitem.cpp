@@ -217,8 +217,8 @@ void PanelItem::show_tooltip(std::string text)
 // The default implementation is empty
 void PanelItem::mouse_enter() { debug << "on_mouse_enter\n"; } 
 void PanelItem::mouse_leave() { debug << "on_mouse_leave\n"; }
-void PanelItem::mouse_clicked(int button) { debug << "on_mouse_clicked\n"; }
+void PanelItem::mouse_clicked(int /*button*/) { debug << "on_mouse_clicked\n"; }
 void PanelItem::mouse_released() { debug << "on_mouse_released\n"; }
-void PanelItem::paint(cairo_t *cr) { debug << "paint\n"; }
-void PanelItem::update_size(cairo_t *cr) { debug << "update_size\n"; } 
+void PanelItem::paint(cairo_t* /*cr*/) { debug << "paint\n"; }
+void PanelItem::update_size(cairo_t* /*cr*/) { debug << "update_size\n"; } 
 void PanelItem::timeout() { debug << "on_timeout\n"; }

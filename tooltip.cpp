@@ -137,38 +137,44 @@ void ToolTip::create_wayland_surface(int offset)
     m_xdg_surface = m_xdg_wm_base->get_xdg_surface(m_surface);
     m_xdg_surface.on_configure() = [&] (uint32_t serial) { 
       if(!m_shared_mem) {
-        m_shared_mem = std::make_shared<shared_mem_t>(2*m_width*m_height*4);
-        auto pool = m_shm->create_pool(m_shared_mem->get_fd(), 2*m_width*m_height*4);
+        const uint32_t pool_size = 2*m_width*m_height*4;
+        if(pool_size > INT32_MAX) {
+          debug_error << "pool_size overflow" << std::endl;
+          exit(1);
+        }
+        // Casts from pool_size to int32_t is safe now:
+        m_shared_mem = std::make_shared<shared_mem_t>(pool_size);
+        auto pool = m_shm->create_pool(m_shared_mem->get_fd(), (int32_t)pool_size);
         for(unsigned int c = 0; c < 2; c++)
-          m_buffer.at(c) = pool.create_buffer(c*m_width*m_height*4, m_width, m_height, m_width*4, shm_format::argb8888);
+          m_buffer.at(c) = pool.create_buffer((int32_t)(c*m_width*m_height*4), (int32_t)m_width, (int32_t)m_height, (int32_t)(m_width*4), shm_format::argb8888);
       }
-      m_xdg_surface.set_window_geometry(0, 0, m_width, m_height);
+      m_xdg_surface.set_window_geometry(0, 0, (int32_t)m_width, (int32_t)m_height);
       m_xdg_surface.ack_configure(serial); 
     };
     m_xdg_positioner = m_xdg_wm_base->create_positioner();
     {
       debug << "m_xdg_positioner set_size " << m_width << ", " << m_height << std::endl;
-      int width = m_width <= 0 ? 32 : m_width;
-      int height = m_height <= 0 ? 32 : m_height;
+      int width = m_width <= 0 ? 32 : (int)m_width;
+      int height = m_height <= 0 ? 32 : (int)m_height;
       m_xdg_positioner.set_size(width, height);
     }
     debug << "m_xdg_positioner offset " << offset << std::endl;
     switch(Settings::get_settings()->panel_position()) {
       case PanelPosition::BOTTOM:
-        m_xdg_positioner.set_anchor_rect(0, 0, offset , *m_panel_height);
+        m_xdg_positioner.set_anchor_rect(0, 0, offset , (int32_t)(*m_panel_height));
         m_xdg_positioner.set_gravity(xdg_positioner_gravity::top);
         m_xdg_positioner.set_constraint_adjustment(xdg_positioner_constraint_adjustment::slide_x);
         m_xdg_positioner.set_anchor(xdg_positioner_anchor::top_right);
         break;
       case PanelPosition::TOP:
-        m_xdg_positioner.set_anchor_rect(0, 0, offset , *m_panel_height);
+        m_xdg_positioner.set_anchor_rect(0, 0, offset , (int32_t)(*m_panel_height));
         m_xdg_positioner.set_gravity(xdg_positioner_gravity::bottom);
         m_xdg_positioner.set_constraint_adjustment(xdg_positioner_constraint_adjustment::slide_x);
         m_xdg_positioner.set_anchor(xdg_positioner_anchor::bottom_right);
         break;
     }
     m_xdg_popup = m_xdg_surface.get_popup(nullptr, m_xdg_positioner);
-    m_xdg_popup.on_configure() = [&] (int32_t x, int32_t y, int32_t w, int32_t h) {
+    m_xdg_popup.on_configure() = [&] (int32_t /*x*/, int32_t /*y*/, int32_t /*w*/, int32_t /*h*/) {
       //draw_tooltip();
     };
     m_xdg_popup.on_popup_done() = [&] () {
@@ -184,7 +190,12 @@ void ToolTip::create_wayland_surface(int offset)
       return;
 
     if(m_cairo_surface == nullptr) {
-      m_cairo_surface = cairo_image_surface_create_for_data((unsigned char*)(m_shared_mem->get_mem()), CAIRO_FORMAT_ARGB32, m_width, m_height, /*stride*/ m_width*4);
+      m_cairo_surface = cairo_image_surface_create_for_data(
+          (unsigned char*)(m_shared_mem->get_mem()), 
+          CAIRO_FORMAT_ARGB32, 
+          (int)m_width, (int)m_height, 
+          cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, (int)m_width)
+      );
 
       if(cairo_surface_status(m_cairo_surface) == CAIRO_STATUS_SUCCESS) {
         debug << "New cairo_surface\n";
@@ -212,8 +223,8 @@ void ToolTip::find_size_for_text(const std::string & text)
       cairo_text_extents_t extents;
       cairo_text_extents(cr, line.c_str(), &extents);
       if(m_width < extents.width)
-        m_width = extents.width + tooltip_margin;
-      m_height += extents.height + tooltip_margin/2.0;
+        m_width = (uint32_t)extents.width + tooltip_margin;
+      m_height += (uint32_t)extents.height + tooltip_margin/2;
     }
 
     cairo_destroy(cr);
@@ -252,14 +263,14 @@ void ToolTip::draw_text(const std::string & text)
       cairo_text_extents(cr, line.c_str(), &extents);
       cairo_move_to(cr, tooltip_margin/2.0 + (m_width - tooltip_margin - extents.width)/2, y + extents.height);
       cairo_show_text(cr, line.c_str());
-      y += extents.height + sep;
+      y += (int)extents.height + sep;
     }
     cairo_restore(cr);
 
     cairo_destroy(cr);
 
     m_surface.attach(m_buffer.at(0), 0, 0);
-    m_surface.damage(0, 0, m_width, m_height);
+    m_surface.damage(0, 0, (int32_t)m_width, (int32_t)m_height);
     m_surface.commit();
   }
 }

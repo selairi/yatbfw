@@ -24,34 +24,34 @@ TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &t
   m_tray_dbus = tray_dbus;
   m_tray_icon_dbus_name = tray_icon_dbus_name;
   m_tray_icon_name = m_tray_dbus->get_icon_name(m_tray_icon_dbus_name);
-  bool ok = m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewToolTip", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewToolTip", [this](const std::string &/*arg*/) {
       printf("NewToolTip\n");
       m_need_repaint = true;
       send_repaint();
       std::string title, text;
       m_tray_dbus->get_tooltip(m_tray_icon_dbus_name, title, text);
       });
-  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewIcon", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewIcon", [this](const std::string &/*arg*/) {
       printf("NewIcon\n");
       m_need_repaint = true;
       send_repaint();
       });
-  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewAttentionIcon", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewAttentionIcon", [this](const std::string &/*arg*/) {
       printf("NewAttentionIcon\n");
       m_need_repaint = true;
       send_repaint();
       });
-  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewOverlayIcon", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewOverlayIcon", [this](const std::string &/*arg*/) {
       printf("NewOverlayIcon\n");
       m_need_repaint = true;
       send_repaint();
       });  
-  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewStatus", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewStatus", [this](const std::string &/*arg*/) {
       printf("NewStatus\n");
       m_need_repaint = true;
       send_repaint();
       });
-  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewTitle", [=](const std::string &arg) {
+  m_tray_dbus->add_listener(m_tray_icon_dbus_name, "NewTitle", [this](const std::string &/*arg*/) {
       printf("NewTitle\n");
       m_need_repaint = true;
       send_repaint();
@@ -83,7 +83,7 @@ void TrayButton::paint_icon_name(cairo_t *cr)
   // Draws icon
   if(m_icon_ref != nullptr) {
     offset = (m_width > m_height ? m_height : m_width);
-    m_icon_ref->paint(cr, m_x, m_y, offset - 1, offset - 1);
+    m_icon_ref->paint(cr, (uint32_t)m_x, (uint32_t)m_y, (uint32_t)(offset - 1), (uint32_t)(offset - 1));
   }
 }
 
@@ -110,7 +110,7 @@ void TrayButton::paint_pixmap(cairo_t *cr)
       float scale = (float)offset/(float)h;
       debug << "icon x:" << m_x << " y:" << m_y << " scale:" << scale << std::endl;
       cairo_scale(cr, (float)offset/(float)w, scale);
-      cairo_set_source_surface(cr, m_icon, m_x/scale, m_y/scale);
+      cairo_set_source_surface(cr, m_icon, (double)m_x/scale, (double)m_y/scale);
       cairo_paint(cr);
       cairo_restore(cr);
     }

@@ -117,7 +117,8 @@ void Panel::draw(uint32_t serial, bool update_items_only)
 
   // Draw panel items
   int x_start = 0, x_end = (int)m_width;
-  for(auto item : m_panel_items) {
+  for(int it = 0; it < m_panel_items.size(); it++) {
+    auto item = m_panel_items[it];
     int x = item->is_start_pos() ? x_start : (x_end - item->get_width());
     if(update_items_only) {
       if(item->need_repaint()) {
@@ -224,11 +225,11 @@ void Panel::init()
     printf("StatusNotifyWatcher is running\n");
     // Make a new StatusNotifyWatcher dbus connection
     m_tray_dbus = std::make_shared<TrayDBus>();
-    m_tray_dbus->add_tray_icon = [&](const std::string &tray_icon_dbus_name) {
+    m_tray_dbus->add_tray_icon = [this](const std::string &tray_icon_dbus_name) {
       add_tray_icon(tray_icon_dbus_name, false);
       m_repaint_full = true;
     };
-    m_tray_dbus->remove_tray_icon = [&](const std::string &tray_icon_dbus_name) {
+    m_tray_dbus->remove_tray_icon = [this](const std::string &tray_icon_dbus_name) {
       printf("Panel removing icon %s\n", tray_icon_dbus_name.c_str());
       remove_tray_icon(tray_icon_dbus_name);
       printf("Panel removed icon\n");
@@ -653,12 +654,16 @@ void Panel::remove_tray_icon(const std::string &tray_icon_dbus_name)
     std::shared_ptr<PanelItem> c = m_panel_tray_icons[tray_icon_dbus_name];
     m_panel_items_delete_later.push_back(c);
     m_panel_tray_icons.erase(tray_icon_dbus_name);
-    for(std::vector<std::shared_ptr<PanelItem> >::iterator it = m_panel_items.begin(); it != m_panel_items.end(); it++) {
-      if((*it) == c) {
+    while(true) {
+      auto it = std::find(m_panel_items.begin(), m_panel_items.end(), c);
+      if(it != m_panel_items.end()) {
         m_panel_items.erase(it);
+        debug_error << "tray icon removed" << tray_icon_dbus_name << std::endl;
+      } else 
         break;
-      }
     }
+  } else {
+    debug_error << "tray icon " << tray_icon_dbus_name << " not found" << std::endl;
   }
 }
 

@@ -91,7 +91,7 @@ void TrayButton::paint_pixmap(cairo_t *cr)
 {
   int offset = (m_width > m_height ? m_height : m_width);
   int32_t w, h;
-  uint8_t *bytes;
+  uint8_t *bytes = nullptr;
   bool ok = m_tray_dbus->get_icon_pixmap(m_tray_icon_dbus_name, offset, &w, &h, &bytes);
   if(ok && bytes != nullptr) {
     offset--;
@@ -120,12 +120,13 @@ void TrayButton::paint_pixmap(cairo_t *cr)
 void TrayButton::mouse_enter()
 {
   std::string title, text;
-  m_tray_dbus->get_tooltip(m_tray_icon_dbus_name, title, text);
-  if(title.empty() && text.empty())
-    text = m_tray_dbus->get_icon_title(m_tray_icon_dbus_name);
-  else
-    text = title + "\n" + text;
-  show_tooltip(text);
+  if(m_tray_dbus->get_tooltip(m_tray_icon_dbus_name, title, text)) {
+    if(title.empty() && text.empty())
+      text = m_tray_dbus->get_icon_title(m_tray_icon_dbus_name);
+    else
+      text = title + "\n" + text;
+    show_tooltip(text);
+  }
 }
 
 static std::shared_ptr<Popup> popup;

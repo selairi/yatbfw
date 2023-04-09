@@ -499,10 +499,12 @@ std::vector<std::string> TrayDBus::get_menu_path(const std::string &icon_dbus_na
       "o");
   if(r < 0) {
     debug << "DBus error. Failed to connect to " << icon_dbus_name << " Menu: " << strerror(-r) << std::endl;
+    remove_tray_icon(icon_dbus_name);
   } else {
     r = sd_bus_message_read(m.m, "o", &object_path);
     if(r < 0) {
       debug << "DBus error. Failed read message connect to " << icon_dbus_name << " Menu: " << strerror(-r) << std::endl;
+      remove_tray_icon(icon_dbus_name);
     } else {
       path.push_back(get_icon_dbus_name_destination(icon_dbus_name));
       path.push_back(std::string(object_path));

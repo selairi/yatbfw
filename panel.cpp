@@ -205,7 +205,7 @@ static void sigcont_handler(int sig)
   printf("Signal %d\n", sig);
 }
 
-void Panel::init()
+void Panel::init_tray_dbus() 
 {
   if(! m_tray_dbus) {
     // Start StatusNotifyWatcher daemon
@@ -238,7 +238,10 @@ void Panel::init()
     };
     m_tray_dbus->init();
   }
+}
 
+void Panel::init()
+{
   m_width = m_height = (uint32_t)Settings::get_settings()->panel_size();
   // retrieve global objects
   registry = display.get_registry();
@@ -574,6 +577,7 @@ void Panel::add_clock(const std::string & icon, const std::string & format, cons
 
 void Panel::add_tray(bool start_pos)
 {
+  init_tray_dbus();
   m_tray = std::make_shared<Tray>();
   m_tray->set_width(1);
   m_tray->set_height(1);
@@ -623,7 +627,7 @@ std::vector<int> Panel::get_fds()
     fds.push_back(m_tray_dbus->get_fd());
   return fds;
 }
-#include <algorithm>
+
 void Panel::add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos)
 {
   if(m_tray == nullptr) 
@@ -654,16 +658,11 @@ void Panel::remove_tray_icon(const std::string &tray_icon_dbus_name)
     std::shared_ptr<PanelItem> c = m_panel_tray_icons[tray_icon_dbus_name];
     m_panel_items_delete_later.push_back(c);
     m_panel_tray_icons.erase(tray_icon_dbus_name);
-    while(true) {
-      auto it = std::find(m_panel_items.begin(), m_panel_items.end(), c);
-      if(it != m_panel_items.end()) {
-        m_panel_items.erase(it);
-        debug_error << "tray icon removed" << tray_icon_dbus_name << std::endl;
-      } else 
-        break;
+    auto it = std::find(m_panel_items.begin(), m_panel_items.end(), c);
+    while(it != m_panel_items.end()) {
+      m_panel_items.erase(it);
+      it = std::find(m_panel_items.begin(), m_panel_items.end(), c);
     }
-  } else {
-    debug_error << "tray icon " << tray_icon_dbus_name << " not found" << std::endl;
   }
 }
 

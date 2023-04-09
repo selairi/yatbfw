@@ -68,6 +68,7 @@ public:
      const std::string & icon_battery_charged, 
      bool no_text,
      const std::string & exec, bool start_pos = true);
+  void init_tray_dbus();
   void add_tray(bool start_pos = true);
   void add_tray_icon(const std::string &tray_icon_dbus_name, bool start_pos);
   void remove_tray_icon(const std::string &tray_icon_dbus_name);

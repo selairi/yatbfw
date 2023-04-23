@@ -152,7 +152,8 @@ void Panel::draw(uint32_t serial, bool update_items_only)
   cairo_rectangle(cr, x_start, 0, x_end - x_start, m_height);
   cairo_clip(cr);
   int x_toplevels = 0;
-  for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+  for(int n = 0; n < m_toplevel_handles.size(); n++) {
+    std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
     x_toplevels += item->get_width();
   }
   // Change toplevel items offset if there is not enoght space 
@@ -161,7 +162,8 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     x_toplevels += (int) m_toplevel_items_offset;
   x_toplevels = (x_start + x_end - x_toplevels) / 2;
 
-  for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+  for(int n = 0; n < m_toplevel_handles.size(); n++) {
+    std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
     item->set_pos(x_toplevels, 0);
     if(update_items_only) {
       if(item->need_repaint()) {
@@ -174,7 +176,6 @@ void Panel::draw(uint32_t serial, bool update_items_only)
     x_toplevels += item->get_width(); 
   }
   cairo_restore(cr);
-
 
   //cairo_destroy(cr);
 
@@ -419,11 +420,15 @@ void Panel::init()
     m_last_cursor_y = y;
     if(y <= (int32_t)m_height && surface == surface_entered) {
       debug << "Cursor Items" << std::endl;
-      for(auto item : m_panel_items)
+      for(int n = 0; n < m_panel_items.size(); n++) {
+        auto item = m_panel_items[n];
         item->on_mouse_enter(x, y);
+      }
       debug << "Cursor Toplevels" << std::endl;
-      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+      for(int n = 0; n < m_toplevel_handles.size(); n++) {
+        std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
         item->on_mouse_enter(x, y);
+      }
       m_repaint_partial = true;
     } else if(m_popup != nullptr && m_popup->is_visible() && m_popup->get_surface() == surface_entered) {
       debug << "Cursor popup" << std::endl;
@@ -437,10 +442,14 @@ void Panel::init()
   {
     debug << "on_leave\n";
     if(surface == surface_left) {
-      for(auto item : m_panel_items)
+      for(int n = 0; n < m_panel_items.size(); n++) {
+        auto item = m_panel_items[n];
         item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
-      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+      }
+      for(int n = 0; n < m_toplevel_handles.size(); n++) {
+        std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
         item->on_mouse_leave(m_last_cursor_x, m_last_cursor_y, true);
+      }
       m_repaint_partial = true;
       ToolTip::hide();
     } else if(m_popup != nullptr && m_popup->is_visible() && m_popup->get_surface() == surface_left) {
@@ -455,11 +464,13 @@ void Panel::init()
     m_last_cursor_x = (int32_t)x;
     m_last_cursor_y = (int32_t)y;
     if(y <= m_height && surface == m_pointer_last_surface_entered) {
-      for(auto item : m_panel_items) {
+      for(int n = 0; n < m_panel_items.size(); n++) {
+        auto item = m_panel_items[n];
         item->on_mouse_enter((int)x, (int)y);
         item->on_mouse_leave((int)x, (int)y, false);
       }
-      for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles) {
+      for(int n = 0; n < m_toplevel_handles.size(); n++) {
+        std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
         item->on_mouse_enter((int)x, (int)y);
         item->on_mouse_leave((int)x, (int)y, false);
       }
@@ -477,17 +488,27 @@ void Panel::init()
     if(surface == m_pointer_last_surface_entered) {
       if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state == pointer_button_state::pressed) {
         debug << "Button pressed\n";
-        for(auto item : m_panel_items)
+        int n;
+        for(n = 0; n < m_panel_items.size(); n++) {
+          auto item = m_panel_items[n];
           item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, (int)button);
-        for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+        }
+        for(n = 0; n < m_toplevel_handles.size(); n++) {
+          std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n]; 
           item->on_mouse_clicked(m_last_cursor_x, m_last_cursor_y, (int)button);
+        }
         m_repaint_partial = true;
         //draw(serial, true);
       } else if(/*(button == BTN_LEFT || button == BTN_RIGHT) && */state != pointer_button_state::pressed) {
-        for(auto item : m_panel_items)
+        int n;
+        for(n = 0; n < m_panel_items.size(); n++) {
+          auto item = m_panel_items[n];
           item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
-        for(std::shared_ptr<ToplevelButton> item : m_toplevel_handles)
+        }
+        for(n = 0; n < m_toplevel_handles.size(); n++) {
+          std::shared_ptr<ToplevelButton> item = m_toplevel_handles[n];
           item->on_mouse_released(m_last_cursor_x, m_last_cursor_y);
+        }
         m_repaint_partial = true;
         //draw(serial, true);
       }
@@ -695,7 +716,8 @@ void Panel::run()
     // Update timeout and run timeout events
     now_in_msecs = get_time_milliseconds();
     timeout_msecs = -1;
-    for(auto item : m_panel_items) {
+    for(int n = 0; n < m_panel_items.size(); n++) {
+      auto item = m_panel_items[n];
       long item_timeout = item->next_time_timeout(now_in_msecs);
       if(item_timeout >= 0) {
         if(now_in_msecs >= item_timeout) {

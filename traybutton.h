@@ -38,6 +38,7 @@ class TrayButton : public PanelItem
 {
 public:
   TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &tray_icon);
+  virtual ~TrayButton();
 
   virtual void mouse_clicked(int button) override;
   virtual void mouse_enter() override;

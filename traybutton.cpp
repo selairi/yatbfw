@@ -58,6 +58,11 @@ TrayButton::TrayButton(std::shared_ptr<TrayDBus> tray_dbus, const std::string &t
       });
 }
 
+TrayButton::~TrayButton()
+{
+  debug_error << "TrayButton " << m_tray_icon_dbus_name << " deleted" << std::endl;
+}
+
 void TrayButton::set_fd(const std::vector<int> &fds)
 {
   m_fds = fds;
